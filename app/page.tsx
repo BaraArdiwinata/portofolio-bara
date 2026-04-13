@@ -21,45 +21,52 @@ export default function Home() {
     setOpenEventIndex(openEventIndex === index ? null : index);
   };
 
+  // UPDATE KONTEN DARI CV
   const eventList = [
     { 
-      title: "Be A Better Muslim II & Ta'aruf Organisasi JMMI", 
-      role: "Ketua Pelaksana", year: "2024 - 2025", 
-      desc: "Mengkonsep dan mengeksekusi pelatihan manajerial event untuk regenerasi JMMI ITS dan pelatihan pengenalan organisasi bagi staf muda baru." 
+      title: "RDK ITS 1446 H", 
+      role: "Wakil Ketua Pelaksana", year: "2024 - 2025", 
+      desc: "Memberikan arahan strategis dan mengawasi secara langsung kinerja Unit Ibadah dan Unit Finansial. Bekerja sama dengan Ketua Pelaksana dalam mengelola operasional harian event utama." 
     },
     { 
-      title: "Webinar Nasional & Free Class Jago Teknik", 
+      title: "Be A Better Muslim II & Ta'aruf Organisasi JMMI", 
       role: "Ketua Pelaksana", year: "2024", 
-      desc: "Mengkonsep webinar berskala nasional terkait Cloud Computing dan AI, serta memfasilitasi kelas bedah CV profesional." 
+      desc: "Memimpin secara komprehensif mulai dari tahap konseptualisasi hingga eksekusi program pelatihan kepemimpinan intensif untuk regenerasi pengurus inti organisasi." 
     },
     { 
       title: "Pelatihan Manajerial CSSMoRA ITS", 
       role: "Ketua Pelaksana", year: "2025", 
-      desc: "Mengkonsep dan mengeksekusi pelatihan manajerial untuk membekali mahasiswa menghadapi pilihan bidang pengembangan." 
+      desc: "Memimpin konseptualisasi hingga pengeksekusian program pelatihan manajerial yang berfokus pada peningkatan pemahaman tata kelola proyek dan operasional anggota." 
     },
     { 
-      title: "CSS Fit 2024 CSSMoRA ITS", 
-      role: "Vice Project Officer", year: "2024", 
-      desc: "Mengkoordinir seluruh panitia untuk menginisiasi, mengkonsep, dan mengeksekusi terlaksananya kompetisi bakat intra CSSMoRA ITS." 
+      title: "Webinar & Free Class Jago Teknik", 
+      role: "Ketua Pelaksana", year: "2024", 
+      desc: "Memimpin penyelenggaraan rangkaian edukasi publik (Webinar Cloud Computing & AI, Free Class CV), berkolaborasi langsung dengan narasumber profesional." 
+    },
+    { 
+      title: "CSS Fit CSSMoRA ITS", 
+      role: "Wakil Ketua Pelaksana", year: "2024", 
+      desc: "Mengoordinasikan operasional kegiatan kompetisi olahraga internal lintas jurusan, memfasilitasi program yang meningkatkan engagement dan solidaritas antar anggota." 
     }
   ];
 
+  // UPDATE KONTEN SOSMAS DARI CV
   const sosmasList = [
     {
-      title: "Teaching Volunteer", year: "2024",
-      desc: "Terjun langsung sebagai Guru Pengajar di SD Mabadiul Ulum dan TPQ Al-Hikmah (JMMI Mengajar), fokus pada edukasi Al-Qur'an dan ilmu dasar agama."
+      title: "Pekan Ormawa Membangun Negeri", year: "2024",
+      desc: "Mengeksekusi edukasi literasi finansial syariah kepada warga di daerah pelosok Lamongan. Mendampingi pengembangan UMKM lokal melalui strategi branding dan sertifikasi halal."
     },
     {
-      title: "POMN TPKI ITS", year: "2024",
-      desc: "Volunteer Staf Finansial Syariah. Menyediakan dan menyampaikan workshop finansial berbasis syariah untuk warga Desa Bangkok, Lamongan."
+      title: "SD Mabadiul Ulum & JMMI Mengajar", year: "2022 - 2024",
+      desc: "Mendedikasikan waktu sebagai tenaga pengajar non-formal untuk membimbing, mengedukasi, dan menanamkan nilai moral kepada anak-anak di kawasan marjinal."
     },
     {
-      title: "ITS Green Action II", year: "2024",
-      desc: "Membantu melaksanakan kegiatan menanam mangrove dan lamun pada pesisir Desa Labuhan Bangkalan sebagai bentuk peduli pada abrasi pantai."
+      title: "ITS Green Action II BEM ITS", year: "2024",
+      desc: "Berpartisipasi aktif dalam inisiatif pelestarian lingkungan hidup dan keberlanjutan ekosistem melalui aksi penanaman mangrove serta pembersihan area pesisir Madura."
     },
     {
-      title: "Santunan 1000 Anak Yatim", year: "2024",
-      desc: "Volunteer Liaison Officer. Membantu menyampaikan informasi dan mendampingi tamu undangan kegiatan dari pra hingga pasca acara."
+      title: "Santunan 1000 Anak Yatim IKA ITS", year: "2024",
+      desc: "Bertindak sebagai narahubung utama dalam mengoordinasikan mobilisasi panti asuhan undangan, memastikan kelancaran dan kenyamanan peserta."
     }
   ];
 
@@ -92,7 +99,13 @@ export default function Home() {
             
             <div className="text-xl text-slate-500 leading-relaxed max-w-xl min-h-[60px]">
               <TypeAnimation
-                sequence={['Mahasiswa Sistem Informasi ITS.', 1000, 'Passionate di bidang Tech Development.', 1000, 'Berpengalaman di Manajemen Organisasi.', 1000, 'Aktif Berkontribusi di Bidang Sosial.', 1000, 'Welcome to my personal space!', 2000]}
+                sequence={[
+                  'Mahasiswa Sistem Informasi ITS.', 1000, 
+                  'Fokus pada Event Management.', 1000, 
+                  'Spesialis People Development.', 1000, 
+                  'Tech-Savvy System Optimizer.', 1000, 
+                  'Welcome to my personal space!', 2000
+                ]}
                 wrapper="span" speed={50} repeat={Infinity}
               />
             </div>
@@ -115,7 +128,6 @@ export default function Home() {
 
           {/* AREA FOTO PROFIL */}
           <div className="relative z-10 flex-shrink-0 mt-8 md:mt-0">
-            {/* Ornamen Cincin/Gerigi Berputar (hidden md:block DIHAPUS, ukuran disesuaikan) */}
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute -inset-4 md:-inset-8 rounded-full border-2 border-dashed border-[#007BC0]/30 z-0"></motion.div>
             <motion.div animate={{ rotate: -360 }} transition={{ duration: 35, repeat: Infinity, ease: "linear" }} className="absolute -inset-8 md:-inset-14 rounded-full border border-[#FFBD07]/40 z-0"></motion.div>
 
@@ -126,7 +138,7 @@ export default function Home() {
             <motion.div initial={{ opacity: 0, x: 30, y: 30 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ delay: 0.8, duration: 0.6, type: "spring" }} className="absolute -bottom-4 left-0 md:-bottom-2 md:-left-12 bg-white/90 backdrop-blur-md px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl shadow-xl border border-white/50 flex items-center gap-2 md:gap-3 z-20 hover:scale-105 transition-transform cursor-default">
               <div className="text-xl md:text-2xl">🌟</div>
               <div>
-                <p className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Project Officer</p>
+                <p className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Ketua Pelaksana</p>
                 <p className="text-xs md:text-sm font-extrabold text-[#013880]">RDK 47 ITS</p>
               </div>
             </motion.div>
@@ -141,7 +153,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 1. KEY LEADERSHIP SECTION (DENGAN TOMBOL SERTIFIKAT) */}
+        {/* 1. KEY LEADERSHIP SECTION */}
         <section className="py-24 border-b border-slate-200/60 overflow-hidden">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUpVariant} className="flex items-center gap-3 mb-16">
             <div className="p-3 bg-blue-50 rounded-xl"><Briefcase size={20} className="text-[#007BC0]" /></div>
@@ -150,10 +162,10 @@ export default function Home() {
           <div className="space-y-16">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUpVariant} className="group">
               <div className="flex flex-col md:flex-row md:justify-between md:items-baseline mb-4">
-                <h3 className="text-3xl font-bold text-[#0F172A] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#013880] group-hover:to-[#FFBD07] transition-all duration-300">Project Officer RDK 47 ITS</h3>
+                <h3 className="text-3xl font-bold text-[#0F172A] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#013880] group-hover:to-[#FFBD07] transition-all duration-300">Ketua Pelaksana RDK 47 ITS</h3>
                 <span className="text-slate-500 font-bold text-sm mt-2 md:mt-0 uppercase tracking-widest bg-[#FFBD07]/20 px-3 py-1 rounded-full group-hover:bg-[#FFBD07] group-hover:text-[#013880] transition-colors">2025 - 2026</span>
               </div>
-              <p className="text-slate-500 leading-relaxed max-w-3xl text-lg mb-6">Memimpin kepanitiaan dengan membawahi 1 BPH, 2 Biro, dan 4 Unit. Bertanggung jawab penuh atas manajemen eksekusi, operasional, hingga proses regenerasi event ramadan terbesar di kampus.</p>
+              <p className="text-slate-500 leading-relaxed max-w-3xl text-lg mb-6">Memimpin dan mengoordinasikan 257 anggota panitia untuk mengeksekusi program Ramadan skala universitas selama 30 hari. Mengimplementasikan Scrum untuk monitoring kinerja dan sukses mengundang Menteri Agama RI.</p>
               <a href="#" className="inline-flex items-center gap-2 text-sm font-bold text-[#007BC0] border border-[#007BC0]/30 px-5 py-2.5 rounded-full hover:bg-[#007BC0] hover:text-white transition-all">
                 <ExternalLink size={16} /> View Credential
               </a>
@@ -162,9 +174,20 @@ export default function Home() {
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUpVariant} className="group">
               <div className="flex flex-col md:flex-row md:justify-between md:items-baseline mb-4">
                 <h3 className="text-3xl font-bold text-[#0F172A] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#013880] group-hover:to-[#FFBD07] transition-all duration-300">Staf Ahli PSDM JMMI ITS</h3>
-                <span className="text-slate-500 font-bold text-sm mt-2 md:mt-0 uppercase tracking-widest bg-[#FFBD07]/20 px-3 py-1 rounded-full group-hover:bg-[#FFBD07] group-hover:text-[#013880] transition-colors">2025</span>
+                <span className="text-slate-500 font-bold text-sm mt-2 md:mt-0 uppercase tracking-widest bg-[#FFBD07]/20 px-3 py-1 rounded-full group-hover:bg-[#FFBD07] group-hover:text-[#013880] transition-colors">2024 - 2025</span>
               </div>
-              <p className="text-slate-500 leading-relaxed max-w-3xl text-lg mb-6">Mengawal pengembangan sumber daya manusia Jamaah Masjid Manarul Ilmi dengan merancang dan mengeksekusi program-program strategis.</p>
+              <p className="text-slate-500 leading-relaxed max-w-3xl text-lg mb-6">Merancang program pelatihan manajemen dan mengevaluasi kinerja pengurus secara berkala menggunakan sistem rapor berbasis fungsi logika kompleks pada Spreadsheet untuk meningkatkan efisiensi.</p>
+              <a href="#" className="inline-flex items-center gap-2 text-sm font-bold text-[#007BC0] border border-[#007BC0]/30 px-5 py-2.5 rounded-full hover:bg-[#007BC0] hover:text-white transition-all">
+                <ExternalLink size={16} /> View Credential
+              </a>
+            </motion.div>
+            
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUpVariant} className="group">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-baseline mb-4">
+                <h3 className="text-3xl font-bold text-[#0F172A] group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#013880] group-hover:to-[#FFBD07] transition-all duration-300">Staf Ahli PSDM CSSMoRA ITS</h3>
+                <span className="text-slate-500 font-bold text-sm mt-2 md:mt-0 uppercase tracking-widest bg-[#FFBD07]/20 px-3 py-1 rounded-full group-hover:bg-[#FFBD07] group-hover:text-[#013880] transition-colors">2025 - Sekarang</span>
+              </div>
+              <p className="text-slate-500 leading-relaxed max-w-3xl text-lg mb-6">Mengelola siklus end-to-end sistem kaderisasi organisasi, memastikan kesiapan serta kualitas kompetensi anggota untuk transisi estafet kepemimpinan pada periode kabinet berikutnya.</p>
               <a href="#" className="inline-flex items-center gap-2 text-sm font-bold text-[#007BC0] border border-[#007BC0]/30 px-5 py-2.5 rounded-full hover:bg-[#007BC0] hover:text-white transition-all">
                 <ExternalLink size={16} /> View Credential
               </a>
@@ -240,11 +263,11 @@ export default function Home() {
                 <Image src="/dashboard.png" alt="Personal Desktop Dashboard" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
               </div>
               <div className="px-2">
-                <h3 className="text-2xl font-bold text-[#0F172A] mb-3 group-hover:text-[#007BC0] transition-colors">Personal Desktop Dashboard</h3>
-                <p className="text-slate-500 leading-relaxed mb-6">Aplikasi desktop custom terintegrasi API untuk cuaca, live tracker saham BBCA, jadwal sholat, dan task manager pribadi.</p>
+                <h3 className="text-2xl font-bold text-[#0F172A] mb-3 group-hover:text-[#007BC0] transition-colors">BaraDashboard: Personal Workspace</h3>
+                <p className="text-slate-500 leading-relaxed mb-6">Aplikasi desktop custom berbasis Electron terintegrasi API real-time untuk pemantauan cuaca, live tracker portofolio saham, jadwal operasional, dan task manager pribadi.</p>
                 <div className="flex gap-3 mb-6">
-                   <span className="text-xs font-bold text-[#013880] bg-[#007BC0]/10 px-3 py-1.5 rounded-full border border-[#007BC0]/20">Next.js</span>
-                   <span className="text-xs font-bold text-[#013880] bg-[#007BC0]/10 px-3 py-1.5 rounded-full border border-[#007BC0]/20">Tailwind</span>
+                   <span className="text-xs font-bold text-[#013880] bg-[#007BC0]/10 px-3 py-1.5 rounded-full border border-[#007BC0]/20">Electron</span>
+                   <span className="text-xs font-bold text-[#013880] bg-[#007BC0]/10 px-3 py-1.5 rounded-full border border-[#007BC0]/20">API Integration</span>
                 </div>
                 <a href="#" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#007BC0] transition-colors">
                   <ExternalLink size={16} /> Link Project 🔗
