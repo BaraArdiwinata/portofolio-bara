@@ -109,9 +109,14 @@ export default function Home() {
             </div>
             
             <div className="pt-4 flex flex-wrap items-center gap-4">
-              <button className="bg-[#013880] text-white px-8 py-4 rounded-full font-bold hover:bg-[#FFBD07] hover:text-[#013880] hover:shadow-lg hover:shadow-[#FFBD07]/30 transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-2">
+              <a 
+                href="/CV_Bara_Ardiwinata.pdf" // Sesuaikan sama nama file lo di folder public
+                target="_blank"                // Ini kuncinya biar buka di tab baru
+                rel="noopener noreferrer"      // Standard keamanan biar web lo aman
+                className="bg-[#013880] text-white px-8 py-4 rounded-full font-bold hover:bg-[#FFBD07] hover:text-[#013880] hover:shadow-lg hover:shadow-[#FFBD07]/30 transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-2 w-fit"
+              >
                 <Download size={20} /> Download CV
-              </button>
+              </a>
               
               <div className="flex gap-3">
                 <a href="#" className="p-4 rounded-full bg-blue-50 text-[#013880] hover:bg-[#FFBD07] hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-blue-100" aria-label="LinkedIn">
@@ -165,7 +170,7 @@ export default function Home() {
                 <span className="text-slate-500 font-bold text-sm mt-2 md:mt-0 uppercase tracking-widest bg-[#FFBD07]/20 px-3 py-1 rounded-full group-hover:bg-[#FFBD07] group-hover:text-[#013880] transition-colors">2025 - 2026</span>
               </div>
               <p className="text-slate-500 leading-relaxed max-w-3xl text-lg mb-6">Memimpin dan mengoordinasikan 257 anggota panitia untuk mengeksekusi program Ramadan skala universitas selama 30 hari. Mengimplementasikan Scrum untuk monitoring kinerja dan sukses mengundang tokoh nasional hingga Menteri Agama RI.</p>
-              <a href="#" className="inline-flex items-center gap-2 text-sm font-bold text-[#007BC0] border border-[#007BC0]/30 px-5 py-2.5 rounded-full hover:bg-[#007BC0] hover:text-white transition-all">
+              <a href="Sertifikat_Ketua_RDK_47.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-[#007BC0] border border-[#007BC0]/30 px-5 py-2.5 rounded-full hover:bg-[#007BC0] hover:text-white transition-all">
                 <ExternalLink size={16} /> View Credential
               </a>
             </motion.div>
