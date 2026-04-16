@@ -21,18 +21,48 @@ export default function Home() {
 
   // DATA DARI CV
   const eventList = [
-    { title: "RDK ITS 1446 H", role: "Wakil Ketua Pelaksana", year: "2024 - 2025", desc: "Bekerja sama dengan Ketua Pelaksana untuk memonitoring kinerja Unit Ibadah dan Unit Finansial serta mengelola operasional harian event utama." },
-    { title: "Be A Better Muslim II & Ta'aruf Organisasi JMMI", role: "Ketua Pelaksana", year: "2024", desc: "Memimpin secara komprehensif mulai dari tahap konseptualisasi hingga eksekusi pelatihan kepemimpinan untuk regenerasi pengurus organisasi." },
-    { title: "Pelatihan Manajerial CSSMoRA ITS", role: "Ketua Pelaksana", year: "2025", desc: "Memimpin konseptualisasi hingga pengeksekusian pelatihan manajerial bertujuan meningkatkan pemahaman tata kelola proyek dan operasional anggota." },
-    { title: "Webinar & Free Class Jago Teknik", role: "Ketua Pelaksana", year: "2024", desc: "Memimpin penyelenggaraan rangkaian edukasi publik (Webinar Cloud Computing & AI, Free Class CV), berkolaborasi langsung dengan narasumber profesional." },
-    { title: "CSS Fit CSSMoRA ITS", role: "Wakil Ketua Pelaksana", year: "2024", desc: "Mengoordinasikan operasional kegiatan kompetisi olahraga internal lintas jurusan, memfasilitasi program yang meningkatkan engagement dan solidaritas antar anggota." }
+    { 
+      title: "RDK ITS 1446 H", 
+      role: "Wakil Ketua Pelaksana", 
+      year: "2024 - 2025", 
+      desc: "Bekerja sama dengan Ketua Pelaksana untuk memonitoring kinerja Unit Ibadah dan Unit Finansial serta mengelola operasional harian event utama.",
+      link: "/Sertif_RDK46.pdf"
+    },
+    { 
+      title: "Be A Better Muslim II & Ta'aruf Organisasi JMMI", 
+      role: "Ketua Pelaksana", 
+      year: "2024", 
+      desc: "Memimpin secara komprehensif mulai dari tahap konseptualisasi hingga eksekusi pelatihan kepemimpinan untuk regenerasi pengurus organisasi.",
+      link: "/SK_BBM_JMMI.pdf"
+    },
+    { 
+      title: "Pelatihan Manajerial CSSMoRA ITS", 
+      role: "Ketua Pelaksana", 
+      year: "2025", 
+      desc: "Memimpin konseptualisasi hingga pengeksekusian pelatihan manajerial bertujuan meningkatkan pemahaman tata kelola proyek dan operasional anggota.",
+      link: "/Sertif_PM_CSS.png"
+    },
+    { 
+      title: "Webinar & Free Class Jago Teknik", 
+      role: "Ketua Pelaksana", 
+      year: "2024", 
+      desc: "Memimpin penyelenggaraan rangkaian edukasi publik (Webinar Cloud Computing & AI, Free Class CV), berkolaborasi langsung dengan narasumber profesional.",
+      link: "/SK_JagoTeknik.pdf"
+    },
+    { 
+      title: "CSS Fit CSSMoRA ITS", 
+      role: "Wakil Ketua Pelaksana", 
+      year: "2024", 
+      desc: "Mengoordinasikan operasional kegiatan kompetisi olahraga internal lintas jurusan, memfasilitasi program yang meningkatkan engagement dan solidaritas antar anggota.",
+      link: "/SK_CSSFit.pdf"
+    }
   ];
 
   const sosmasList = [
-    { title: "Pekan Ormawa Membangun Negeri", year: "2024", desc: "Mengedukasi literasi finansial syariah, strategi branding, dan memfasilitasi sertifikasi halal untuk UMKM lokal kepada warga di daerah pelosok Lamongan." },
-    { title: "SD Mabadiul Ulum & JMMI Mengajar", year: "2022 - 2024", desc: "Mendedikasikan waktu sebagai pengajar non-formal untuk membimbing, mengedukasi, dan menanamkan moral kepada anak-anak di kawasan marjinal." },
-    { title: "ITS Green Action II BEM ITS", year: "2024", desc: "Berpartisipasi aktif dalam pelestarian lingkungan hidup dan keberlanjutan ekosistem melalui penanaman mangrove serta pembersihan area pesisir Madura." },
-    { title: "Santunan 1000 Anak Yatim IKA ITS", year: "2024", desc: "Bertindak sebagai narahubung utama dalam mengoordinasikan mobilisasi panti asuhan undangan, memastikan kelancaran dan kenyamanan peserta." }
+    { title: "Pekan Ormawa Membangun Negeri", year: "2024", desc: "Mengedukasi literasi finansial syariah, strategi branding, dan memfasilitasi sertifikasi halal untuk UMKM lokal kepada warga di daerah pelosok Lamongan.", link:"Sertif_POMN.pdf" },
+    { title: "SD Mabadiul Ulum & JMMI Mengajar", year: "2022 - 2024", desc: "Mendedikasikan waktu sebagai pengajar non-formal untuk membimbing, mengedukasi, dan menanamkan moral kepada anak-anak di kawasan marjinal.", link:"Sertif_Jimeng.png" },
+    { title: "ITS Green Action II BEM ITS", year: "2024", desc: "Berpartisipasi aktif dalam pelestarian lingkungan hidup dan keberlanjutan ekosistem melalui penanaman mangrove serta pembersihan area pesisir Madura.", link:"Sertif_ITSGA.jpg" },
+    { title: "Santunan 1000 Anak Yatim IKA ITS", year: "2024", desc: "Bertindak sebagai narahubung utama dalam mengoordinasikan mobilisasi panti asuhan undangan, memastikan kelancaran dan kenyamanan peserta.", link:"Sertif_Santunan_1000_Anak_Yatim.pdf" }
   ];
 
   // DATA DUMMY KASTA ARSIP (MORE PROJECTS)
@@ -138,7 +168,17 @@ export default function Home() {
               <Image src="/profile.png" alt="Bara Profile Picture" fill priority sizes="(max-width: 768px) 224px, 320px" className="object-cover transition-transform duration-700 group-hover:scale-110" />
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: 30, y: 30 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ delay: 0.8, duration: 0.6, type: "spring" }} className="absolute -bottom-4 left-0 md:-bottom-2 md:-left-12 bg-white/90 backdrop-blur-md px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl shadow-xl border border-white/50 flex items-center gap-2 md:gap-3 z-20 hover:scale-105 transition-transform cursor-default">
+            {/* BADGE 1: AWARDEE PBSB (ATAS TENGAH - BERTAHTA DI ATAS) 👑 */}
+            <motion.div initial={{ opacity: 0, y: -40 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ delay: 1.2, duration: 0.6, type: "spring" }} className="absolute -top-8 left-6 md:-top-10 md:left-16 bg-white/90 backdrop-blur-md px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl shadow-xl border border-white/50 flex items-center gap-2 md:gap-3 z-20 hover:scale-105 transition-transform cursor-default">
+              <div className="text-xl md:text-2xl">🎓</div>
+              <div>
+                <p className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Awardee</p>
+                <p className="text-xs md:text-sm font-extrabold text-[#013880]">Beasiswa PBSB</p>
+              </div>
+            </motion.div>
+
+            {/* BADGE 2: RDK 47 (BAWAH KIRI - FONDASI KIRI) 🌟 */}
+            <motion.div initial={{ opacity: 0, x: -40, y: 40 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ delay: 0.8, duration: 0.6, type: "spring" }} className="absolute -bottom-4 -left-6 md:-bottom-2 md:-left-16 bg-white/90 backdrop-blur-md px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl shadow-xl border border-white/50 flex items-center gap-2 md:gap-3 z-20 hover:scale-105 transition-transform cursor-default">
               <div className="text-xl md:text-2xl">🌟</div>
               <div>
                 <p className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Ketua Pelaksana</p>
@@ -146,7 +186,8 @@ export default function Home() {
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, x: -30, y: -30 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ delay: 1, duration: 0.6, type: "spring" }} className="absolute top-0 right-0 md:top-4 md:-right-8 bg-white/90 backdrop-blur-md px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl shadow-xl border border-white/50 flex items-center gap-2 md:gap-3 z-20 hover:scale-105 transition-transform cursor-default">
+            {/* BADGE 3: SISTEM INFORMASI (BAWAH KANAN - FONDASI KANAN) 💻 */}
+            <motion.div initial={{ opacity: 0, x: 40, y: 40 }} animate={{ opacity: 1, x: 0, y: 0 }} transition={{ delay: 1, duration: 0.6, type: "spring" }} className="absolute -bottom-4 -right-6 md:-bottom-2 md:-right-16 bg-white/90 backdrop-blur-md px-3 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl shadow-xl border border-white/50 flex items-center gap-2 md:gap-3 z-20 hover:scale-105 transition-transform cursor-default">
               <div className="text-xl md:text-2xl">💻</div>
               <div>
                 <p className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Mahasiswa</p>
@@ -241,9 +282,15 @@ export default function Home() {
                     <p className="text-slate-500 leading-relaxed text-sm md:text-base line-clamp-4">{event.desc}</p>
                   </div>
                   <div className="mt-4 pt-4 border-t border-slate-100">
-                    <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 group-hover:text-[#007BC0] transition-colors">
+                    <a 
+                      href={event.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#007BC0] transition-colors z-50 relative"
+                    >
                       <ExternalLink size={16} /> Lihat Bukti 📄
-                    </span>
+                    </a>
                   </div>
                 </motion.div>
               )
@@ -290,9 +337,15 @@ export default function Home() {
                     <p className="text-slate-500 leading-relaxed text-sm md:text-base line-clamp-4">{item.desc}</p>
                   </div>
                   <div className="mt-4 pt-4 border-t border-slate-100">
-                    <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 group-hover:text-[#007BC0] transition-colors">
+                    <a 
+                      href={sosmasList[index].link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#007BC0] transition-colors z-50 relative"
+                    >
                       <ExternalLink size={16} /> Lihat Bukti 📄
-                    </span>
+                    </a>
                   </div>
                 </motion.div>
               )
@@ -322,7 +375,13 @@ export default function Home() {
               {/* MASTERPIECE 1: PORTFOLIO WEB */}
               <div className="group bg-white/90 backdrop-blur-md rounded-[2rem] border border-slate-200/60 shadow-lg transition-all duration-300 overflow-hidden flex flex-col md:col-span-3 ring-1 ring-slate-100 hover:ring-[#007BC0]/30 transform-gpu">
                 <div className="aspect-[21/9] md:aspect-video bg-slate-100 overflow-hidden relative cursor-pointer border-b border-slate-100">
-                  <Image src="/dashboard.png" alt="Personal Portfolio Website" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <Image 
+                    src="/dashboard-webs.png" 
+                    alt="Personal Portfolio Website" 
+                    fill 
+                    sizes="(max-width: 768px) 100vw, 75vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105" 
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6"><Zap size={20} className="text-[#FFBD07]" /></div>
                 </div>
                 
@@ -330,7 +389,7 @@ export default function Home() {
                   <div className="flex-1">
                     <span className="inline-block text-xs font-bold text-[#FFBD07] mb-2 uppercase tracking-widest">Personal Project</span>
                     <h3 className="text-xl md:text-2xl font-bold text-[#0F172A] mb-2 group-hover:text-[#013880] transition-colors">Personal Portfolio Website</h3>
-                    <p className="text-slate-500 leading-relaxed text-sm line-clamp-2">Website portofolio interaktif dengan 3D Infinite Carousel, Bento Grid UI, dan animasi *smooth* menggunakan Framer Motion.</p>
+                    <p className="text-slate-500 leading-relaxed text-sm line-clamp-2">Website portofolio interaktif dengan 3D Infinite Carousel, Bento Grid UI, dan animasi smooth menggunakan Framer Motion.</p>
                   </div>
                   <div className="flex flex-col gap-2 min-w-fit">
                     <div className="flex gap-2 flex-wrap">
@@ -354,7 +413,7 @@ export default function Home() {
                     <div>
                       <span className="inline-block text-xs font-bold text-[#FFBD07] mb-2 uppercase tracking-widest">Organization Tool</span>
                       <h3 className="text-xl md:text-2xl font-bold text-[#0F172A] mb-2 group-hover:text-[#FFBD07] transition-colors">Sistem Otomasi Rekrutmen</h3>
-                      <p className="text-slate-500 leading-relaxed text-sm">Automasi sistem rekapitulasi nilai dan *screening* panitia menggunakan formula kompleks (LAMBDA, LET, REGEX) di Google Sheets untuk ribuan pendaftar.</p>
+                      <p className="text-slate-500 leading-relaxed text-sm">Automasi sistem rekapitulasi nilai dan screening panitia menggunakan formula kompleks (LAMBDA, LET, REGEX) di Google Sheets untuk ratusan pendaftar.</p>
                     </div>
                     <div className="flex flex-wrap gap-2.5">
                        <span className="text-[10px] font-bold text-[#013880] bg-[#FFBD07]/20 px-3 py-1.5 rounded-full border border-[#FFBD07]/30">Google Sheets</span>
