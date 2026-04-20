@@ -1,0 +1,12 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_ZWxlY3RyaWMtY293LTI4LmNsZXJrLmFjY291bnRzLmRldiQ
+CLERK_SECRET_KEY=sk_test_cRn7cfSEB8ce4WYsiS22YWGxh8992GajIMWZIe3lMy
