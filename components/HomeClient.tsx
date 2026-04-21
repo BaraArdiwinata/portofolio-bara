@@ -75,11 +75,14 @@ export default function HomeClient({
         <section className="pt-12 pb-24 md:pt-16 md:pb-32 flex flex-col-reverse md:flex-row items-center gap-16 md:gap-20 border-b border-slate-200/60 relative">
           <motion.div initial="hidden" animate="visible" variants={fadeUpVariant} className="flex-1 space-y-8 z-10">
             <p className="text-[#007BC0] font-bold tracking-widest uppercase text-sm drop-shadow-sm">Selamat Datang di Portofolio Saya</p>
-            <h1 className="text-5xl md:text-7xl font-extrabold text-[#0F172A] leading-[1.1] tracking-tight h-[150px] md:h-auto">
+            <h1 className="text-4xl md:text-7xl font-extrabold text-[#0F172A] leading-[1.1] tracking-tight mb-4 md:mb-6">
               Halo, aku Bara. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#013880] to-[#FFBD07]">Membangun sistem, memimpin tim.</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#013880] to-[#FFBD07]">
+                Membangun sistem, memimpin tim.
+              </span>
             </h1>
-            <div className="text-xl text-slate-500 leading-relaxed max-w-xl min-h-[60px]">
+
+            <div className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-xl min-h-[80px] md:min-h-[60px]">
               <TypeAnimation
                 sequence={[
                   'Mahasiswa Sistem Informasi ITS.', 1000, 
