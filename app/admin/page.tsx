@@ -1,14 +1,24 @@
-import { Briefcase, FolderDot, LayoutTemplate } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { Briefcase, FolderDot, Star } from "lucide-react";
 
 export const metadata = {
   title: "Dashboard | BaraAdmin",
 };
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  // 🔥 AMBIL TOTAL DATA REAL-TIME DARI DATABASE
+  const totalMasterpiece = await prisma.project.count({
+    where: { isFeatured: true }
+  });
+
+  const totalArchive = await prisma.project.count({
+    where: { isFeatured: false }
+  });
+
+  const totalExperience = await prisma.experience.count();
+
   return (
-    <div className="flex flex-col gap-8 max-w-6xl mx-auto">
-      
-      {/* HEADER PROFESSIONAL */}
+    <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A]">Ringkasan Dashboard</h1>
         <p className="text-slate-500 mt-2 font-medium text-sm">
@@ -16,44 +26,37 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      {/* CARD GRID (Elegan & Clean) */}
-      <div className="grid gap-6 md:grid-cols-3 mt-4">
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Kartu 1 */}
-        <div className="group rounded-3xl border border-slate-200/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm transition-all hover:shadow-xl hover:border-[#007BC0]/30 cursor-default">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-blue-50 rounded-xl text-[#007BC0] group-hover:bg-[#007BC0] group-hover:text-white transition-colors">
-              <LayoutTemplate size={20} />
-            </div>
+        {/* KOTAK 1: MASTERPIECE */}
+        <div className="bg-white p-8 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all group">
+          <div className="p-3 bg-blue-50 rounded-xl w-fit group-hover:bg-[#013880] group-hover:text-white transition-colors">
+            <Star size={20} className="text-[#013880] group-hover:text-white" />
           </div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Proyek Utama</h3>
-          <p className="text-4xl font-extrabold text-[#0F172A] group-hover:text-[#013880] transition-colors">2</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">Proyek Utama</p>
+          <h2 className="text-5xl font-black text-[#013880] mt-2">{totalMasterpiece}</h2>
         </div>
 
-        {/* Kartu 2 */}
-        <div className="group rounded-3xl border border-slate-200/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm transition-all hover:shadow-xl hover:border-[#FFBD07]/30 cursor-default">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-amber-50 rounded-xl text-[#FFBD07] group-hover:bg-[#FFBD07] group-hover:text-white transition-colors">
-              <FolderDot size={20} />
-            </div>
+        {/* KOTAK 2: ARSIP */}
+        <div className="bg-white p-8 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all group">
+          <div className="p-3 bg-amber-50 rounded-xl w-fit group-hover:bg-[#FFBD07] group-hover:text-white transition-colors">
+            <FolderDot size={20} className="text-[#FFBD07] group-hover:text-white" />
           </div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Arsip Proyek</h3>
-          <p className="text-4xl font-extrabold text-[#0F172A] group-hover:text-[#013880] transition-colors">6</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">Arsip Proyek</p>
+          <h2 className="text-5xl font-black text-[#013880] mt-2">{totalArchive}</h2>
         </div>
 
-        {/* Kartu 3 */}
-        <div className="group rounded-3xl border border-slate-200/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm transition-all hover:shadow-xl hover:border-[#007BC0]/30 cursor-default">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-blue-50 rounded-xl text-[#007BC0] group-hover:bg-[#007BC0] group-hover:text-white transition-colors">
-              <Briefcase size={20} />
-            </div>
+        {/* KOTAK 3: EXPERIENCES */}
+        <div className="bg-white p-8 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all group">
+          <div className="p-3 bg-blue-50 rounded-xl w-fit group-hover:bg-[#007BC0] group-hover:text-white transition-colors">
+            <Briefcase size={20} className="text-[#007BC0] group-hover:text-white" />
           </div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Pengalaman & Sosmas</h3>
-          <p className="text-4xl font-extrabold text-[#0F172A] group-hover:text-[#013880] transition-colors">9</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">Pengalaman & Sosmas</p>
+          <h2 className="text-5xl font-black text-[#013880] mt-2">{totalExperience}</h2>
         </div>
 
       </div>
-      
     </div>
   );
 }

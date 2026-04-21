@@ -10,7 +10,7 @@ const workSans = Work_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Bara Ardiwinata's WebPage'", // 👈 Ini bakal muncul di tab browser utama
+  title: "Bara Ardiwinata's WebPage", // 👈 Ini bakal muncul di tab browser utama
   description: "Mahasiswa Sistem Informasi ITS, Event Organizer, and Tech Enthusiast.",
 };
 
