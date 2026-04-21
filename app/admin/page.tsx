@@ -1,5 +1,9 @@
 import { Briefcase, FolderDot, LayoutTemplate } from "lucide-react";
 
+export const metadata = {
+  title: "Dashboard | BaraAdmin",
+};
+
 export default function AdminDashboard() {
   return (
     <div className="flex flex-col gap-8 max-w-6xl mx-auto">

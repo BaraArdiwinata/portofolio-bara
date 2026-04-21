@@ -3,6 +3,10 @@ import { FolderDot, Star, Archive } from "lucide-react";
 import ProjectModal from "@/components/admin/ProjectModal";
 import ProjectRowActions from "@/components/admin/ProjectRowActions";
 
+export const metadata = {
+  title: "Kelola Proyek | BaraAdmin",
+};
+
 export default async function ProjectsPage() {
   const projects = await prisma.project.findMany({
     orderBy: { createdAt: "desc" },

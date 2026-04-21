@@ -3,6 +3,10 @@ import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
 import ExperienceModal from "@/components/admin/ExperienceModal";
 import ExperienceRowActions from "@/components/admin/ExperienceRowActions";
 
+export const metadata = {
+  title: "Kelola Pengalaman | BaraAdmin",
+};
+
 // Perhatikan ada kata 'async' di sini! Ini adalah Server Component.
 export default async function ExperiencesPage() {
   

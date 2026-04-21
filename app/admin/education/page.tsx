@@ -3,6 +3,10 @@ import { GraduationCap } from "lucide-react";
 import EducationModal from "@/components/admin/EducationModal";
 import EducationRowActions from "@/components/admin/EducationRowActions";
 
+export const metadata = {
+  title: "Kelola Pendidikan | BaraAdmin",
+};
+
 export default async function EducationPage() {
   const educations = await prisma.education.findMany({
     orderBy: { createdAt: "desc" },
