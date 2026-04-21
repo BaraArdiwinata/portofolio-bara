@@ -8,5 +8,38 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_ZWxlY3RyaWMtY293LTI4LmNsZXJrLmFjY291bnRzLmRldiQ
-CLERK_SECRET_KEY=sk_test_cRn7cfSEB8ce4WYsiS22YWGxh8992GajIMWZIe3lMy
+model Experience {
+  id          String   @id @default(cuid())
+  title       String   // Contoh: "RDK ITS 1446 H"
+  role        String   // Contoh: "Ketua Pelaksana"
+  category    String   // "Leadership", "Event", atau "Sosmas"
+  year        String   // Contoh: "2024 - 2025"
+  description String   @db.Text // Pake Text biar bisa nampung deskripsi panjang
+  link        String?  // Optional (?) untuk link PDF sertifikat/bukti
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String   // Contoh: "Personal Portfolio Website"
+  type        String   // Contoh: "Web App", "Data Science", dll
+  description String?  @db.Text // Optional, buat deskripsi Masterpiece
+  image       String?  // Optional, link gambar buat Masterpiece
+  techStack   String[] // Array teks: ["Next.js", "Tailwind"] (Support di PostgreSQL!)
+  link        String?  // Optional, link Live Preview atau Repo
+  isFeatured  Boolean  @default(false) // True = Masterpiece (Atas), False = Arsip (Bawah)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Education {
+  id          String   @id @default(cuid())
+  institution String   // Contoh: "Institut Teknologi Sepuluh Nopember"
+  major       String   // Contoh: "Sistem Informasi"
+  degree      String   // Contoh: "Sarjana (S1)"
+  year        String   // Contoh: "2022 - Sekarang"
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
