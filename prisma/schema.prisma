@@ -43,3 +43,11 @@ model Education {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model Shortlink {
+  id        String   @id @default(cuid())
+  slug      String   @unique // Kata kunci custom, misal: "cv", "linkedin", "rdk47"
+  url       String   // URL asli yang panjang (tujuan redirect)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

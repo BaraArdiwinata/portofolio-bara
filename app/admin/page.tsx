@@ -5,6 +5,8 @@ export const metadata = {
   title: "Dashboard | BaraAdmin",
 };
 
+export const revalidate = 0;
+
 export default async function AdminDashboard() {
   // 🔥 AMBIL TOTAL DATA REAL-TIME DARI DATABASE
   const totalMasterpiece = await prisma.project.count({
