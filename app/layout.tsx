@@ -3,6 +3,7 @@ import { Work_Sans } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/react";
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -23,6 +24,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
           </ThemeProvider>
         </ClerkProvider>
+          {children}
+      <Analytics /> 
       </body>
     </html>
   );
