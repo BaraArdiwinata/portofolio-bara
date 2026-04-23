@@ -64,3 +64,11 @@ model VisitorLog {
 
   @@index([sessionId]) // Biar database lu cepet pas nyari jumlah "Unique Visitor"
 }
+
+model FinancialLog {
+  id          String   @id @default(cuid())
+  type        String   // "IN" atau "OUT"
+  amount      Int      // Nominal uang (misal: 2000)
+  description String   // Keterangan (misal: "Es Teh")
+  createdAt   DateTime @default(now())
+}
