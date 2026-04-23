@@ -59,14 +59,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isDesktopExpanded, setIsDesktopExpanded] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#FAFAFA] relative overflow-hidden">
+    // 🔥 KUNCI RAHASIA: Ganti min-h-screen jadi h-screen, dan pastikan overflow-hidden
+    <div className="flex h-screen w-full bg-[#FAFAFA] relative overflow-hidden">
       
       {/* ✨ AMBIENT GLOWS */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#007BC0]/10 blur-[120px] z-0 pointer-events-none transform-gpu"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[50%] rounded-full bg-[#FFBD07]/10 blur-[120px] z-0 pointer-events-none transform-gpu"></div>
 
       {/* 👈 SIDEBAR DESKTOP (BISA NYUSUT) */}
-      <aside className={`hidden md:flex flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-all duration-300 z-40 ${isDesktopExpanded ? "w-72 p-6" : "w-24 p-4"}`}>
+      <aside className={`hidden md:flex flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-all duration-300 z-40 h-full flex-shrink-0 ${isDesktopExpanded ? "w-72 p-6" : "w-24 p-4"}`}>
         <div className={`mb-10 flex items-center h-10 ${isDesktopExpanded ? "justify-between" : "justify-center"}`}>
           {isDesktopExpanded ? (
             <span className="text-3xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#013880] to-[#FFBD07] whitespace-nowrap">
@@ -79,7 +80,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </div>
         {/* Panggil komponen NavLinks dengan Props yang bener */}
-        <NavLinks expanded={isDesktopExpanded} onLinkClick={() => setIsMobileOpen(false)} />
+        <div className="overflow-y-auto flex-1 hide-scrollbar">
+          <NavLinks expanded={isDesktopExpanded} onLinkClick={() => setIsMobileOpen(false)} />
+        </div>
       </aside>
 
       {/* 📱 SIDEBAR MOBILE (OVERLAY) */}
@@ -96,12 +99,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <X size={24} />
           </button>
         </div>
-        <NavLinks expanded={true} onLinkClick={() => setIsMobileOpen(false)} />
+        <div className="overflow-y-auto flex-1 hide-scrollbar">
+          <NavLinks expanded={true} onLinkClick={() => setIsMobileOpen(false)} />
+        </div>
       </aside>
 
       {/* 👉 KONTEN UTAMA */}
-      <div className="flex flex-1 flex-col z-10 w-full min-w-0">
-        <header className="flex h-[72px] items-center justify-between border-b border-slate-200/60 bg-white/80 backdrop-blur-xl px-6 md:px-8 sticky top-0 z-30">
+      {/* 🔥 KUNCI RAHASIA: Pastikan bungkus kanan ini h-full dan overflow-hidden biar nahan tinggi layar */}
+      <div className="flex flex-1 flex-col z-10 w-full min-w-0 h-full overflow-hidden">
+        
+        {/* HEADER */}
+        {/* 🔥 Gak usah sticky lagi, cukup kasih flex-shrink-0 biar tinggi 72px-nya mutlak */}
+        <header className="flex h-[72px] flex-shrink-0 items-center justify-between border-b border-slate-200/60 bg-white/80 backdrop-blur-xl px-6 md:px-8 z-30">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => {
@@ -128,7 +137,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        <main className="flex-1 p-6 md:p-10 overflow-x-hidden overflow-y-auto">
+        {/* AREA KONTEN (SCROLLABLE) */}
+        {/* 🔥 KUNCI RAHASIA: overflow-y-auto ditaruh di sini biar dia doang yang nge-scroll */}
+        <main className="flex-1 p-6 md:p-10 overflow-x-hidden overflow-y-auto relative">
           {children}
         </main>
       </div>

@@ -51,3 +51,16 @@ model Shortlink {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model VisitorLog {
+  id        String   @id @default(cuid())
+  sessionId String   // Kunci unik dari Cookie (ID Khusus Pengunjung)
+  path      String   // Halaman yang dibuka (misal: /cv, /shortlink)
+  os        String?  // Sistem Operasi (Windows, Android, iOS)
+  browser   String?  // Browser (Chrome, Safari, Firefox)
+  device    String?  // Tipe Device (Mobile, Desktop, Tablet)
+  referrer  String?  // Dateng dari mana (misal: instagram.com)
+  createdAt DateTime @default(now())
+
+  @@index([sessionId]) // Biar database lu cepet pas nyari jumlah "Unique Visitor"
+}

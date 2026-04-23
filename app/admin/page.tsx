@@ -1,64 +1,132 @@
 import { prisma } from "@/lib/prisma";
-import { Briefcase, FolderDot, Star } from "lucide-react";
+import DashboardChart from "@/components/DashboardChart";
 
-export const metadata = {
-  title: "Dashboard | BaraAdmin",
-};
+// Mantra sakti biar Next.js nggak nge-cache halaman ini dan filternya bisa jalan!
+export const dynamic = "force-dynamic";
 
-export const revalidate = 0;
+function getStartDate(range: string) {
+  const now = new Date();
+  switch (range) {
+    case "1D": now.setDate(now.getDate() - 1); return now;
+    case "1W": now.setDate(now.getDate() - 7); return now;
+    case "1M": now.setMonth(now.getMonth() - 1); return now;
+    case "All": return new Date(0);
+    default: now.setMonth(now.getMonth() - 1); return now;
+  }
+}
 
-export default async function AdminDashboard() {
-  // 🔥 AMBIL TOTAL DATA REAL-TIME DARI DATABASE
-  const totalMasterpiece = await prisma.project.count({
-    where: { isFeatured: true }
+function formatChartDate(date: Date, range: string): string {
+  if (range === "1D") return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':');
+  if (range === "All") return date.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+  return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+}
+
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  // Kita pakai Promise karena di versi Next.js terbaru, searchParams itu asinkron
+  searchParams: Promise<{ range?: string }>;
+}) {
+  const resolvedParams = await searchParams;
+  const range = resolvedParams?.range || "1M"; 
+  const startDate = getStartDate(range);
+
+  // ==========================================
+  // 🧠 1. TARIK DATA PORTOFOLIO 
+  // ==========================================
+  const [totalPengalaman, totalProyek, totalPendidikan, totalShortlink] = await Promise.all([
+    prisma.experience.count(),
+    prisma.project.count(),
+    prisma.education.count(),
+    prisma.shortlink.count(),
+  ]);
+
+  // ==========================================
+  // 🧠 2. TARIK DATA ANALYTICS BERDASAR FILTER
+  // ==========================================
+  const logsInRanges = await prisma.visitorLog.findMany({
+    where: { createdAt: { gte: startDate } },
+    orderBy: { createdAt: "asc" },
   });
 
-  const totalArchive = await prisma.project.count({
-    where: { isFeatured: false }
+  const visitorsMap = new Map();
+  logsInRanges.forEach(log => visitorsMap.set(log.sessionId, true));
+  const totalUnique = visitorsMap.size;
+  const totalPageViews = logsInRanges.length;
+
+  // ==========================================
+  // 🧠 3. FORMAT DATA GRAFIK SAHAM
+  // ==========================================
+  const dailyDataMap = new Map();
+
+  logsInRanges.forEach((log) => {
+    let intervalKey: string;
+    if (range === "1D") {
+      intervalKey = log.createdAt.toISOString().substring(0, 13) + ":00:00.000Z";
+    } else {
+      intervalKey = log.createdAt.toISOString().substring(0, 10) + "T00:00:00.000Z";
+    }
+    dailyDataMap.set(intervalKey, (dailyDataMap.get(intervalKey) || 0) + 1);
   });
 
-  const totalExperience = await prisma.experience.count();
+  const chartData = Array.from(dailyDataMap.entries()).map(([dateStr, count]) => {
+    const dateObj = new Date(dateStr);
+    return {
+      name: formatChartDate(dateObj, range),
+      total: count,
+      fullDate: dateObj.getTime(),
+    };
+  }).sort((a, b) => a.fullDate - b.fullDate);
 
+  // ==========================================
+  // 🎨 4. RENDER UI PROFESSIONAL
+  // ==========================================
   return (
-    <div className="flex flex-col gap-8">
+    <div className="p-8 space-y-8 w-full max-w-5xl">
+      
+      {/* Header Eksekutif */}
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#0F172A]">Ringkasan Dashboard</h1>
-        <p className="text-slate-500 mt-2 font-medium text-sm">
-          Sistem Manajemen Portofolio Terintegrasi.
-        </p>
+        <h1 className="text-3xl font-extrabold text-[#013880]">Executive Dashboard</h1>
+        <p className="text-gray-500 mt-1 text-sm">Ringkasan performa portofolio dan analitik lalu lintas situs web.</p>
       </div>
 
-      {/* STATS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* 📊 SUPER CARD: Cuma Data Portofolio (Ada Judulnya Sekarang) */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* Judul Card */}
+        <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Manajemen Konten Portofolio</h2>
+        </div>
         
-        {/* KOTAK 1: MASTERPIECE */}
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all group">
-          <div className="p-3 bg-blue-50 rounded-xl w-fit group-hover:bg-[#013880] group-hover:text-white transition-colors">
-            <Star size={20} className="text-[#013880] group-hover:text-white" />
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+          <div className="p-6 text-center hover:bg-gray-50 transition flex flex-col items-center justify-center h-28">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Pengalaman</p>
+            <p className="text-3xl font-black text-[#013880]">{totalPengalaman}</p>
           </div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">Proyek Utama</p>
-          <h2 className="text-5xl font-black text-[#013880] mt-2">{totalMasterpiece}</h2>
-        </div>
-
-        {/* KOTAK 2: ARSIP */}
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all group">
-          <div className="p-3 bg-amber-50 rounded-xl w-fit group-hover:bg-[#FFBD07] group-hover:text-white transition-colors">
-            <FolderDot size={20} className="text-[#FFBD07] group-hover:text-white" />
+          <div className="p-6 text-center hover:bg-gray-50 transition flex flex-col items-center justify-center h-28">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Proyek</p>
+            <p className="text-3xl font-black text-[#013880]">{totalProyek}</p>
           </div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">Arsip Proyek</p>
-          <h2 className="text-5xl font-black text-[#013880] mt-2">{totalArchive}</h2>
-        </div>
-
-        {/* KOTAK 3: EXPERIENCES */}
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all group">
-          <div className="p-3 bg-blue-50 rounded-xl w-fit group-hover:bg-[#007BC0] group-hover:text-white transition-colors">
-            <Briefcase size={20} className="text-[#007BC0] group-hover:text-white" />
+          <div className="p-6 text-center hover:bg-gray-50 transition flex flex-col items-center justify-center h-28">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Pendidikan</p>
+            <p className="text-3xl font-black text-[#013880]">{totalPendidikan}</p>
           </div>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-6">Pengalaman & Sosmas</p>
-          <h2 className="text-5xl font-black text-[#013880] mt-2">{totalExperience}</h2>
+          <div className="p-6 text-center hover:bg-gray-50 transition flex flex-col items-center justify-center h-28">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Shortlink</p>
+            <p className="text-3xl font-black text-[#013880]">{totalShortlink}</p>
+          </div>
         </div>
-
       </div>
+
+      {/* 📈 COMPONENT GRAFIK SAHAM (Dengan Legend di Dalemnya) */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+        <DashboardChart 
+          chartData={chartData} 
+          currentRange={range}
+          totalViews={totalPageViews} 
+          totalVisitors={totalUnique} 
+        /> 
+      </div>
+
     </div>
   );
 }

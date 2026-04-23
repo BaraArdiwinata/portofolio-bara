@@ -4,6 +4,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -17,16 +18,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${workSans.variable} font-sans h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#FAFAFA] text-slate-800 selection:bg-[#FFBD07] selection:text-[#013880]">
-        <ClerkProvider>
+    // 1. ClerkProvider cukup ditaruh SATU KALI aja di paling luar
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning className={`${workSans.variable} font-sans h-full antialiased`}>
+        <body className="min-h-full flex flex-col bg-[#FAFAFA] text-slate-800 selection:bg-[#FFBD07] selection:text-[#013880]">
+          
           <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" disableTransitionOnChange>
+            {/* 2. {children} (Isi web lu) cukup dipanggil SATU KALI aja di dalem ThemeProvider */}
             {children}
           </ThemeProvider>
-        </ClerkProvider>
-          {children}
-      <Analytics /> 
-      </body>
-    </html>
+
+          {/* 3. CCTV dan Analytics ditaruh sejajar sebelum body ditutup */}
+          <AnalyticsTracker />
+          <Analytics /> 
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
