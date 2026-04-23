@@ -42,11 +42,15 @@ export async function GET(request: NextRequest) {
 // Setiap ada pesan masuk ke nomor WhatsApp Anda, Meta akan kirim ke endpoint ini
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    console.log("📨 Pesan masuk dari WhatsApp:", JSON.stringify(body, null, 2));
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error("❌ Failed to parse JSON:", parseError);
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
-    // Struktur webhook dari Meta WhatsApp
-    // Dokumentasi: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-example
+    console.log("📨 Webhook received:", JSON.stringify(body, null, 2));
 
     const entry = body.entry?.[0];
     const changes = entry?.changes?.[0];
@@ -54,55 +58,52 @@ export async function POST(request: NextRequest) {
     const messages = value?.messages?.[0];
 
     if (!messages) {
-      console.log("⚠️ Tidak ada pesan dalam webhook");
-      return NextResponse.json({ received: true });
+      console.log("⚠️ No messages in webhook");
+      return NextResponse.json({ received: true }, { status: 200 });
     }
 
-    const from = messages.from; // Nomor pengirim (format: 62812xxxxx)
-    const messageType = messages.type; // "text", "image", "document", dll
-    const messageText = messages.text?.body; // Isi pesan kalau text
+    const from = messages.from;
+    const messageType = messages.type;
+    const messageText = messages.text?.body;
 
-    console.log(`💬 Pesan dari ${from} (${messageType}): ${messageText}`);
+    console.log(`💬 Message from ${from} (${messageType}): ${messageText}`);
 
-    // 🎯 Parse Financial Report dari pesan
-    // Format: OUT 2000 Es Teh
+    // Process asynchronously (don't wait for completion)
     if (messageType === "text" && messageText) {
       const parsed = parseFinancialMessage(messageText);
 
       if (parsed) {
-        // Simpan ke database
-        const log = await prismaClient.financialLog.create({
+        // Save to database (don't await, let it run in background)
+        prismaClient.financialLog.create({
           data: {
             type: parsed.type,
             amount: parsed.amount,
             description: parsed.description,
           },
+        }).then(log => {
+          console.log("💾 Financial log saved:", log);
+          // Send reply (fire and forget)
+          sendWhatsAppMessage(
+            from,
+            `✅ DATA MASUK FINANSIAL REPORT\n\n📊 ${parsed.type === "IN" ? "💰 PEMASUKAN" : "💸 PENGELUARAN"}: Rp${parsed.amount.toLocaleString("id-ID")}\n📝 Keterangan: ${parsed.description}\n\n🕐 Waktu: ${new Date().toLocaleString("id-ID")}`
+          ).catch(err => console.error("Failed to send reply:", err));
+        }).catch(err => {
+          console.error("❌ Failed to save log:", err);
         });
-
-        console.log("💾 Data finansial tersimpan:", log);
-
-        // Balas pesan ke WhatsApp
-        await sendWhatsAppMessage(
+      } else {
+        // Send error message (fire and forget)
+        sendWhatsAppMessage(
           from,
-          `✅ DATA MASUK FINANSIAL REPORT\n\n📊 ${parsed.type === "IN" ? "💰 PEMASUKAN" : "💸 PENGELUARAN"}: Rp${parsed.amount.toLocaleString("id-ID")}\n📝 Keterangan: ${parsed.description}\n\n🕐 Waktu: ${new Date().toLocaleString("id-ID")}`
-        );
-
-        return NextResponse.json({ success: true, saved: true });
+          `❌ Format tidak dikenal\n\nGunakan format:\nOUT [nominal] [keterangan]\n\nContoh:\nOUT 2000 Es Teh`
+        ).catch(err => console.error("Failed to send error message:", err));
       }
     }
 
-    // Kalau format tidak sesuai, beri tahu user
-    if (messageType === "text") {
-      await sendWhatsAppMessage(
-        from,
-        `❌ Format tidak dikenal\n\nGunakan format:\nOUT [nominal] [keterangan]\n\nContoh:\nOUT 2000 Es Teh`
-      );
-    }
-
-    return NextResponse.json({ received: true });
+    // Return immediately
+    return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error("❌ Error processing webhook:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("❌ Webhook processing error:", error);
+    return NextResponse.json({ error: "Processing error" }, { status: 500 });
   }
 }
 
