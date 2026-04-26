@@ -68,7 +68,24 @@ model VisitorLog {
 model FinancialLog {
   id          String   @id @default(cuid())
   type        String   // "IN" atau "OUT"
-  amount      Int      // Nominal uang (misal: 2000)
-  description String   // Keterangan (misal: "Es Teh")
+  wallet      String   @default("CASH") // 👈 INI TAMBAHAN BARU
+  amount      Int
+  description String
   createdAt   DateTime @default(now())
+}
+
+model StockPortfolio {
+  id                String   @id @default(cuid())
+  emitenCode        String   // Kode saham: "BBCA", "TLKM", "BMRI", dll
+  lotQuantity       Int      // Jumlah lot yang dimiliki (1 lot = 100 lembar untuk IDX)
+  averageBuyPrice   Float    // Harga rata-rata pembelian per lembar (Rp)
+  totalInvested     Float    // Total investasi = lotQuantity * 100 * averageBuyPrice
+  currentPrice      Float?   // Harga saham saat ini (fetched dari API, optional)
+  totalValue        Float?   // Nilai portofolio saat ini = lotQuantity * 100 * currentPrice
+  gainLoss          Float?   // Profit/Loss = totalValue - totalInvested
+  gainLossPercent   Float?   // Profit/Loss % = (gainLoss / totalInvested) * 100
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([emitenCode]) // Satu emiten hanya 1 record per portfolio
 }

@@ -11,16 +11,21 @@ import {
   GraduationCap, 
   Menu, 
   X,
-  Link2     
+  Link2,
+  Wallet,
+  TrendingUp
 } from "lucide-react";
 
-// 🟢 FIX-NYA DI SINI: Komponen NavLinks kita pindah ke LUAR biar aman!
+// 🟢 Komponen NavLinks
 function NavLinks({ expanded, onLinkClick }: { expanded: boolean; onLinkClick: () => void }) {
   const pathname = usePathname();
   const isActive = (path: string) => pathname === path;
 
+  // 👇 Menu Items aku update buat masukin Keuangan & Saham!
   const menuItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/finance", label: "Keuangan (JARVIS)", icon: Wallet },
+    { href: "/admin/stocks", label: "Portofolio Saham", icon: TrendingUp },
     { href: "/admin/experiences", label: "Pengalaman", icon: Briefcase },
     { href: "/admin/projects", label: "Proyek", icon: FolderDot },
     { href: "/admin/education", label: "Pendidikan", icon: GraduationCap },
@@ -33,7 +38,7 @@ function NavLinks({ expanded, onLinkClick }: { expanded: boolean; onLinkClick: (
         <Link
           key={item.href}
           href={item.href}
-          onClick={onLinkClick} // Manggil fungsi tutup dari props
+          onClick={onLinkClick}
           title={!expanded ? item.label : ""} 
           className={`flex items-center gap-3 rounded-xl p-3.5 font-bold text-sm transition-all group overflow-hidden ${
             isActive(item.href)
@@ -56,10 +61,9 @@ function NavLinks({ expanded, onLinkClick }: { expanded: boolean; onLinkClick: (
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isDesktopExpanded, setIsDesktopExpanded] = useState(false);
+  const [isDesktopExpanded, setIsDesktopExpanded] = useState(true); // Default kebuka aja biar jelas
 
   return (
-    // 🔥 KUNCI RAHASIA: Ganti min-h-screen jadi h-screen, dan pastikan overflow-hidden
     <div className="flex h-screen w-full bg-[#FAFAFA] relative overflow-hidden">
       
       {/* ✨ AMBIENT GLOWS */}
@@ -79,7 +83,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
           )}
         </div>
-        {/* Panggil komponen NavLinks dengan Props yang bener */}
         <div className="overflow-y-auto flex-1 hide-scrollbar">
           <NavLinks expanded={isDesktopExpanded} onLinkClick={() => setIsMobileOpen(false)} />
         </div>
@@ -105,11 +108,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* 👉 KONTEN UTAMA */}
-      {/* 🔥 KUNCI RAHASIA: Pastikan bungkus kanan ini h-full dan overflow-hidden biar nahan tinggi layar */}
       <div className="flex flex-1 flex-col z-10 w-full min-w-0 h-full overflow-hidden">
         
         {/* HEADER */}
-        {/* 🔥 Gak usah sticky lagi, cukup kasih flex-shrink-0 biar tinggi 72px-nya mutlak */}
         <header className="flex h-[72px] flex-shrink-0 items-center justify-between border-b border-slate-200/60 bg-white/80 backdrop-blur-xl px-6 md:px-8 z-30">
           <div className="flex items-center gap-4">
             <button 
@@ -128,7 +129,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               BaraAdmin.
             </div>
             <div className="hidden text-sm font-semibold text-slate-500 md:block tracking-wide italic">
-              Selamat Datang di Dashboard Admin Bara!
+              JARVIS System Activated
             </div>
           </div>
 
@@ -138,7 +139,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* AREA KONTEN (SCROLLABLE) */}
-        {/* 🔥 KUNCI RAHASIA: overflow-y-auto ditaruh di sini biar dia doang yang nge-scroll */}
         <main className="flex-1 p-6 md:p-10 overflow-x-hidden overflow-y-auto relative">
           {children}
         </main>

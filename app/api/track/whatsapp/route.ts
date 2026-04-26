@@ -1,179 +1,139 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma as prismaClient } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { handleStockAction } from "@/actions/stock"; // Import otak saham
 
-// 🟢 GET: Webhook Verification dari Meta
-// Meta akan send request ke endpoint ini dengan challenge token
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
+const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+// ==========================================
+// 1. FUNGSI KIRIM PESAN WA
+// ==========================================
+async function sendWhatsAppMessage(to: string, body: string) {
+  const url = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: to,
+      type: "text",
+      text: { body: body },
+    }),
+  });
+  if (!response.ok) {
+    console.error("❌ Gagal kirim WA:", await response.text());
+  }
+}
+
+// ==========================================
+// 2. PARSER PINTAR (KEUANGAN & SAHAM)
+// ==========================================
+function parseMessage(text: string) {
+  const parts = text.trim().toUpperCase().split(/\s+/);
+  if (parts.length < 2) return null;
+
+  const action = parts[0];
+
+  // LOGIC 1: SAHAM (Contoh: BUY BBCA 10 10200)
+  if (["BUY", "SELL", "HOLD"].includes(action)) {
+    return {
+      category: "STOCK",
+      action: action,
+      emiten: parts[1],
+      lot: parseInt(parts[2] || "0"),
+      price: parseInt(parts[3] || "0"),
+    };
+  }
+
+  // LOGIC 2: KEUANGAN (Contoh: OUT DANA 50000 Nasi)
+  if (["IN", "OUT"].includes(action)) {
+    let wallet = "CASH";
+    let amountStr = parts[1];
+    let descIndex = 2;
+
+    if (isNaN(parseInt(parts[1], 10))) {
+      wallet = parts[1];
+      amountStr = parts[2];
+      descIndex = 3;
+    }
+    return {
+      category: "FINANCE",
+      action: action,
+      wallet: wallet,
+      amount: parseInt(amountStr, 10),
+      description: parts.slice(descIndex).join(" "),
+    };
+  }
+
+  return null;
+}
+
+// ==========================================
+// 3. ENDPOINT WEBHOOK
+// ==========================================
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
-  const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
 
-  // Log untuk debugging
-  console.log("🔍 Webhook Verification Request:", { 
-    mode, 
-    token, 
-    challenge,
-    verifyTokenExists: !!verifyToken,
-    tokenMatch: token === verifyToken
-  });
-
-  // Verify token harus match dengan yang di .env
-  if (mode === "subscribe" && token === verifyToken) {
-    console.log("✅ Webhook terverifikasi!");
-    // Return challenge sebagai plain text
-    return new NextResponse(challenge, { 
-      status: 200,
-      headers: {
-        "Content-Type": "text/plain",
-      }
-    });
-  } else {
-    console.log("❌ Webhook verification failed");
-    console.log("Expected token:", verifyToken);
-    console.log("Received token:", token);
-    console.log("Mode:", mode);
-    return new NextResponse("Forbidden", { status: 403 });
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    return new NextResponse(challenge, { status: 200 });
   }
+  return new NextResponse("Forbidden", { status: 403 });
 }
 
-// 🔵 POST: Terima pesan dari WhatsApp
-// Setiap ada pesan masuk ke nomor WhatsApp Anda, Meta akan kirim ke endpoint ini
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    let body;
-    try {
-      body = await request.json();
-    } catch (parseError) {
-      console.error("❌ Failed to parse JSON:", parseError);
-      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    const body = await request.json();
+    if (!body.entry || !body.entry[0].changes[0].value.messages) {
+      return NextResponse.json({ status: "ignored" });
     }
 
-    console.log("📨 Webhook received:", JSON.stringify(body, null, 2));
+    const message = body.entry[0].changes[0].value.messages[0];
+    const from = message.from; // Nomor pengirim
+    const text = message.text?.body;
 
-    const entry = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
-    const messages = value?.messages?.[0];
+    if (!text) return NextResponse.json({ status: "no text" });
 
-    if (!messages) {
-      console.log("⚠️ No messages in webhook");
-      return NextResponse.json({ received: true }, { status: 200 });
+    const parsed = parseMessage(text);
+
+    if (!parsed) {
+      await sendWhatsAppMessage(from, "❌ Format salah. Gunakan:\nKeuangan: OUT DANA 50000 Makan\nSaham: BUY BBCA 10 10200");
+      return NextResponse.json({ status: "invalid format" });
     }
 
-    const from = messages.from;
-    const messageType = messages.type;
-    const messageText = messages.text?.body;
-
-    console.log(`💬 Message from ${from} (${messageType}): ${messageText}`);
-
-    // Process asynchronously (don't wait for completion)
-    if (messageType === "text" && messageText) {
-      const parsed = parseFinancialMessage(messageText);
-
-      if (parsed) {
-        // Save to database (don't await, let it run in background)
-        prismaClient.financialLog.create({
-          data: {
-            type: parsed.type,
-            amount: parsed.amount,
-            description: parsed.description,
-          },
-        }).then(log => {
-          console.log("💾 Financial log saved:", log);
-          // Send reply (fire and forget)
-          sendWhatsAppMessage(
-            from,
-            `✅ DATA MASUK FINANSIAL REPORT\n\n📊 ${parsed.type === "IN" ? "💰 PEMASUKAN" : "💸 PENGELUARAN"}: Rp${parsed.amount.toLocaleString("id-ID")}\n📝 Keterangan: ${parsed.description}\n\n🕐 Waktu: ${new Date().toLocaleString("id-ID")}`
-          ).catch(err => console.error("Failed to send reply:", err));
-        }).catch(err => {
-          console.error("❌ Failed to save log:", err);
-        });
-      } else {
-        // Send error message (fire and forget)
-        sendWhatsAppMessage(
-          from,
-          `❌ Format tidak dikenal\n\nGunakan format:\nOUT [nominal] [keterangan]\n\nContoh:\nOUT 2000 Es Teh`
-        ).catch(err => console.error("Failed to send error message:", err));
-      }
+    // === EKSEKUSI SAHAM ===
+    if (parsed.category === "STOCK") {
+      const replyMsg = await handleStockAction(parsed.action, parsed.emiten!, parsed.lot!, parsed.price!);
+      await sendWhatsAppMessage(from, replyMsg);
+      console.log("📈 Stock log saved:", parsed);
     }
-
-    // Return immediately
-    return NextResponse.json({ received: true }, { status: 200 });
-  } catch (error) {
-    console.error("❌ Webhook processing error:", error);
-    return NextResponse.json({ error: "Processing error" }, { status: 500 });
-  }
-}
-
-/**
- * Parse pesan financial report
- * Format: OUT 2000 Es Teh
- * Return: { type: "OUT", amount: 2000, description: "Es Teh" }
- */
-function parseFinancialMessage(text: string) {
-  const trimmed = text.trim().toUpperCase();
-  const parts = trimmed.split(/\s+/);
-
-  if (parts.length < 3) return null;
-
-  const type = parts[0]; // "IN" atau "OUT"
-  const amount = parseInt(parts[1], 10);
-  const description = parts.slice(2).join(" ");
-
-  if (!["IN", "OUT"].includes(type) || isNaN(amount) || amount <= 0) {
-    return null;
-  }
-
-  return { type, amount, description };
-}
-
-/**
- * Kirim pesan ke WhatsApp user
- * @param phoneNumber Nomor tujuan (format: 62812xxxxx)
- * @param message Isi pesan
- */
-async function sendWhatsAppMessage(phoneNumber: string, message: string) {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-  if (!accessToken || !phoneNumberId) {
-    console.error("❌ Missing WhatsApp credentials in .env");
-    return false;
-  }
-
-  try {
-    const response = await fetch(
-      `https://graph.instagram.com/v18.0/${phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+    
+    // === EKSEKUSI KEUANGAN ===
+    if (parsed.category === "FINANCE") {
+      if (isNaN(parsed.amount!) || parsed.amount! <= 0) return NextResponse.json({ status: "invalid amount" });
+      
+      await prisma.financialLog.create({
+        data: {
+          type: parsed.action,
+          wallet: parsed.wallet!,
+          amount: parsed.amount!,
+          description: parsed.description!,
         },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: phoneNumber,
-          type: "text",
-          text: {
-            body: message,
-          },
-        }),
-      }
-    );
-
-    const data = await response.json();
-    console.log("📤 WhatsApp message sent:", data);
-
-    if (!response.ok) {
-      console.error("❌ Gagal kirim pesan:", data);
-      return false;
+      });
+      const replyMsg = `✅ DATA FINANSIAL MASUK\n🏦 ${parsed.wallet}\n📊 ${parsed.action === "IN" ? "PEMASUKAN" : "PENGELUARAN"}: Rp${parsed.amount?.toLocaleString("id-ID")}\n📝 ${parsed.description}`;
+      await sendWhatsAppMessage(from, replyMsg);
+      console.log("💾 Financial log saved:", parsed);
     }
 
-    return true;
+    return NextResponse.json({ status: "success" });
   } catch (error) {
-    console.error("❌ Error sending WhatsApp message:", error);
-    return false;
+    console.error("❌ Webhook error:", error);
+    return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }
