@@ -71,6 +71,7 @@ model FinancialLog {
   wallet      String   @default("CASH") // 👈 INI TAMBAHAN BARU
   amount      Int
   description String
+  category  String   @default("Lain-lain")
   createdAt   DateTime @default(now())
 }
 
@@ -88,4 +89,22 @@ model StockPortfolio {
   updatedAt         DateTime @updatedAt
 
   @@unique([emitenCode]) // Satu emiten hanya 1 record per portfolio
+}
+
+model PendingTransaction {
+  id          String   @id @default(cuid())
+  type        String   @default("OUT")
+  amount      Int
+  wallet      String   // BCA, CASH, dll
+  category    String   @default("Lain-lain") // F&B, Transport, dll
+  description String?  // Rincian item dari struk
+  createdAt   DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }

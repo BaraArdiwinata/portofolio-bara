@@ -15,7 +15,10 @@ export const metadata: Metadata = {
   title: "Bara Ardiwinata's WebPage", // 👈 Ini bakal muncul di tab browser utama
   description: "Mahasiswa Sistem Informasi ITS, Event Organizer, and Tech Enthusiast.",
   manifest: "/manifest.json", // 🔥 TAMBAHIN INI
-  themeColor: "#013880", // 🔥 TAMBAHIN INI
+};
+
+export const viewport = {
+  themeColor: "#013880",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
