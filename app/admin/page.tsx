@@ -163,27 +163,29 @@ export default async function AdminDashboard({
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl -ml-10 -mb-10 pointer-events-none"></div>
 
-        <div className="px-8 py-8 relative z-10">
-          <div className="flex items-center gap-3 mb-2 opacity-80">
-            <DollarSign size={24} className="text-emerald-400" />
-            <h2 className="text-sm font-bold uppercase tracking-widest">Total Kekayaan Bersih (Net Worth)</h2>
+        {/* FIX: Padding dikecilin di HP (px-6 py-6), font dikecilin (text-4xl) & dikasih truncate biar ga jebol */}
+        <div className="px-6 py-6 sm:px-8 sm:py-8 relative z-10">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 opacity-80">
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+            <h2 className="text-xs sm:text-sm font-bold uppercase tracking-widest">Total Kekayaan Bersih (Net Worth)</h2>
           </div>
-          <p className="text-5xl font-black tracking-tight">{formatIDR(netWorth)}</p>
+          <p className="text-4xl sm:text-5xl font-black tracking-tight truncate">{formatIDR(netWorth)}</p>
         </div>
 
-        <div className="grid grid-cols-2 divide-x divide-white/10 bg-black/20 relative z-10 backdrop-blur-sm">
-          <div className="p-6 flex items-center gap-4 hover:bg-white/5 transition-colors">
-             <div className="bg-blue-500/20 p-3 rounded-2xl"><Wallet size={24} className="text-blue-400" /></div>
+        {/* FIX: Di HP jadi 1 kolom nyusun ke bawah (grid-cols-1), di Laptop jadi 2 kolom (sm:grid-cols-2) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/10 bg-black/20 relative z-10 backdrop-blur-sm">
+          <div className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
+             <div className="bg-blue-500/20 p-2 sm:p-3 rounded-xl sm:rounded-2xl"><Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" /></div>
              <div>
-               <p className="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Saldo Liquid</p>
-               <p className="text-2xl font-bold">{formatIDR(liquidBalance)}</p>
+               <p className="text-[10px] sm:text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Saldo Liquid</p>
+               <p className="text-xl sm:text-2xl font-bold">{formatIDR(liquidBalance)}</p>
              </div>
           </div>
-          <div className="p-6 flex items-center gap-4 hover:bg-white/5 transition-colors">
-             <div className="bg-emerald-500/20 p-3 rounded-2xl"><TrendingUp size={24} className="text-emerald-400" /></div>
+          <div className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
+             <div className="bg-emerald-500/20 p-2 sm:p-3 rounded-xl sm:rounded-2xl"><TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" /></div>
              <div>
-               <p className="text-xs font-bold text-emerald-200 uppercase tracking-widest mb-1">Aset Saham</p>
-               <p className="text-2xl font-bold">{formatIDR(stockAssets)}</p>
+               <p className="text-[10px] sm:text-xs font-bold text-emerald-200 uppercase tracking-widest mb-1">Aset Saham</p>
+               <p className="text-xl sm:text-2xl font-bold">{formatIDR(stockAssets)}</p>
              </div>
           </div>
         </div>
@@ -191,15 +193,16 @@ export default async function AdminDashboard({
 
       {/* 📊 SUPER CARD: Manajemen Konten */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+        <div className="bg-gray-50/50 px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center gap-3">
           <Landmark size={20} className="text-[#013880]" />
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Manajemen Konten Portofolio Web</h2>
         </div>
+        {/* FIX: Font & Padding Dikecilin buat HP */}
         <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-          <div className="p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-28"><p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Pengalaman</p><p className="text-3xl font-black text-[#013880]">{totalPengalaman}</p></div>
-          <div className="p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-28"><p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Proyek</p><p className="text-3xl font-black text-[#013880]">{totalProyek}</p></div>
-          <div className="p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-28"><p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Pendidikan</p><p className="text-3xl font-black text-[#013880]">{totalPendidikan}</p></div>
-          <div className="p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-28"><p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Shortlink</p><p className="text-3xl font-black text-[#013880]">{totalShortlink}</p></div>
+          <div className="p-4 sm:p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-24 sm:h-28"><p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Pengalaman</p><p className="text-2xl sm:text-3xl font-black text-[#013880]">{totalPengalaman}</p></div>
+          <div className="p-4 sm:p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-24 sm:h-28"><p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Proyek</p><p className="text-2xl sm:text-3xl font-black text-[#013880]">{totalProyek}</p></div>
+          <div className="p-4 sm:p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-24 sm:h-28"><p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Pendidikan</p><p className="text-2xl sm:text-3xl font-black text-[#013880]">{totalPendidikan}</p></div>
+          <div className="p-4 sm:p-6 text-center hover:bg-gray-50 flex flex-col justify-center h-24 sm:h-28"><p className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase mb-1">Shortlink</p><p className="text-2xl sm:text-3xl font-black text-[#013880]">{totalShortlink}</p></div>
         </div>
       </div>
 
