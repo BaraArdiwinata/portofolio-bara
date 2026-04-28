@@ -1,57 +1,46 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { handleStockAction } from "@/actions/stock"; // Import otak saham
-import { GoogleGenerativeAI } from "@google/generative-ai"; // 🔥 Otak Gemini
+import { handleStockAction } from "@/actions/stock"; 
+import { GoogleGenerativeAI } from "@google/generative-ai"; 
 
-const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-// Inisialisasi Gemini AI
+const FONNTE_TOKEN = process.env.FONNTE_TOKEN;
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // ==========================================
-// 1. FUNGSI KIRIM PESAN WA
+// 1. FUNGSI KIRIM PESAN WA (FONNTE)
 // ==========================================
-async function sendWhatsAppMessage(to: string, body: string) {
-  const url = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`;
+async function sendFonnteMessage(target: string, message: string) {
+  const url = "https://api.fonnte.com/send";
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${ACCESS_TOKEN}`,
       "Content-Type": "application/json",
+      Authorization: FONNTE_TOKEN || "",
     },
     body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to: to,
-      type: "text",
-      text: { body: body },
+      target: target,
+      message: message,
     }),
   });
   if (!response.ok) {
-    console.error("❌ Gagal kirim WA:", await response.text());
+    console.error("❌ Gagal kirim Fonnte:", await response.text());
   }
 }
 
 // ==========================================
-// 2. FUNGSI DOWNLOAD GAMBAR DARI META
+// 2. FUNGSI DOWNLOAD GAMBAR DARI FONNTE
 // ==========================================
-async function getWhatsAppMedia(mediaId: string) {
-  // A. Minta URL Gambar ke Meta
-  const res = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
-    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
-  });
-  const data = await res.json();
-  
-  // B. Download File Binary-nya
-  const mediaRes = await fetch(data.url, {
-    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
-  });
-  const arrayBuffer = await mediaRes.arrayBuffer();
-  
-  // C. Ubah jadi Base64 buat dibaca Gemini
+async function fetchFonnteImage(imageUrl: string) {
+  const res = await fetch(imageUrl);
+  const arrayBuffer = await res.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");
-  return { mimeType: data.mime_type, base64 };
+  
+  // Deteksi mimetype
+  let mimeType = "image/jpeg";
+  if (imageUrl.toLowerCase().endsWith(".png")) mimeType = "image/png";
+  if (imageUrl.toLowerCase().endsWith(".webp")) mimeType = "image/webp";
+
+  return { base64, mimeType };
 }
 
 // ==========================================
@@ -84,37 +73,25 @@ function parseMessage(text: string) {
 }
 
 // ==========================================
-// 4. ENDPOINT WEBHOOK
+// 4. ENDPOINT WEBHOOK (POST ONLY)
 // ==========================================
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const mode = searchParams.get("hub.mode");
-  const token = searchParams.get("hub.verify_token");
-  const challenge = searchParams.get("hub.challenge");
-
-  if (mode === "subscribe" && token === VERIFY_TOKEN) {
-    return new NextResponse(challenge, { status: 200 });
-  }
-  return new NextResponse("Forbidden", { status: 403 });
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    if (!body.entry || !body.entry[0].changes[0].value.messages) {
-      return NextResponse.json({ status: "ignored" });
-    }
+    
+    // Payload dari Fonnte
+    const sender = body.sender; 
+    let text = body.message || "";
+    const attachmentUrl = body.url; // URL gambar kalau lu ngirim foto
+    
+    // Kalau yang nge-hit webhook bukan pesan orang (cuma ping sistem Fonnte)
+    if (!sender) return NextResponse.json({ status: "ignored" });
 
-    const message = body.entry[0].changes[0].value.messages[0];
-    const from = message.from;
-
-    // 🔥 LOGIC BARU: KALAU YANG DIKIRIM GAMBAR STRUK
-    if (message.type === "image") {
-      await sendWhatsAppMessage(from, "⏳ JARVIS Vision sedang memindai struk...");
+    // 🔥 LOGIC GAMBAR STRUK (AI VISION)
+    if (attachmentUrl) {
+      await sendFonnteMessage(sender, "⏳ JARVIS Vision sedang memindai struk...");
       
-      const mediaId = message.image.id;
-      const media = await getWhatsAppMedia(mediaId);
-
+      const media = await fetchFonnteImage(attachmentUrl);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `Analisis gambar struk belanja ini. Kembalikan HANYA format JSON valid (tanpa blok kode markdown). 
       Format JSON yang diwajibkan:
@@ -134,7 +111,6 @@ export async function POST(request: Request) {
       const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
       const aiData = JSON.parse(cleanJson);
 
-      // Simpan ke Karantina (PendingTransaction)
       await prisma.pendingTransaction.create({
         data: {
           type: "OUT",
@@ -146,21 +122,20 @@ export async function POST(request: Request) {
       });
 
       const replyMsg = `🧾 *SCAN STRUK SELESAI*\n\n🏦 Wallet: ${aiData.wallet}\n💰 Total: Rp${aiData.amount.toLocaleString("id-ID")}\n📂 Kategori: ${aiData.category}\n📝 Item: ${aiData.description}\n\nKetik *YA* untuk menyimpan ke database, atau *BATAL* untuk membatalkan.`;
-      await sendWhatsAppMessage(from, replyMsg);
+      await sendFonnteMessage(sender, replyMsg);
       return NextResponse.json({ status: "success" });
     }
 
     // -----------------------------------------------------------------
     // LOGIC TEKS (Perintah Biasa & Konfirmasi)
-    const text = message.text?.body?.trim().toUpperCase();
+    text = text.trim().toUpperCase();
     if (!text) return NextResponse.json({ status: "no text" });
 
-    // 🔥 LOGIC BARU: KONFIRMASI STRUK (YA / BATAL)
     if (text === "YA" || text === "BATAL") {
       const pendingTx = await prisma.pendingTransaction.findFirst({ orderBy: { createdAt: 'desc' } });
       
       if (!pendingTx) {
-        await sendWhatsAppMessage(from, "❌ Tidak ada transaksi struk yang pending.");
+        await sendFonnteMessage(sender, "❌ Tidak ada transaksi struk yang pending.");
         return NextResponse.json({ status: "success" });
       }
 
@@ -175,11 +150,11 @@ export async function POST(request: Request) {
           }
         });
         await prisma.pendingTransaction.delete({ where: { id: pendingTx.id } });
-        await sendWhatsAppMessage(from, `✅ Berhasil! Rp${pendingTx.amount.toLocaleString("id-ID")} telah dicatat ke pengeluaran ${pendingTx.category}.`);
+        await sendFonnteMessage(sender, `✅ Berhasil! Rp${pendingTx.amount.toLocaleString("id-ID")} telah dicatat ke pengeluaran ${pendingTx.category}.`);
       } 
       else if (text === "BATAL") {
         await prisma.pendingTransaction.delete({ where: { id: pendingTx.id } });
-        await sendWhatsAppMessage(from, "🗑️ Pemindaian struk dibatalkan dan dihapus.");
+        await sendFonnteMessage(sender, "🗑️ Pemindaian struk dibatalkan dan dihapus.");
       }
       return NextResponse.json({ status: "success" });
     }
@@ -187,14 +162,13 @@ export async function POST(request: Request) {
     // LOGIC LAMA: PARSER MANUAL
     const parsed = parseMessage(text);
     if (!parsed) {
-      await sendWhatsAppMessage(from, "❌ Format salah. Gunakan:\nKeuangan: OUT DANA 50000 Makan\nSaham: BUY BBCA 10 10200\nAtau kirim foto struk.");
+      await sendFonnteMessage(sender, "❌ Format salah. Gunakan:\nKeuangan: OUT DANA 50000 Makan\nSaham: BUY BBCA 10 10200\nAtau kirim foto struk.");
       return NextResponse.json({ status: "invalid format" });
     }
 
     if (parsed.category === "STOCK") {
       const replyMsg = await handleStockAction(parsed.action, parsed.emiten!, parsed.lot!, parsed.price!);
-      await sendWhatsAppMessage(from, replyMsg);
-      console.log("📈 Stock log saved:", parsed);
+      await sendFonnteMessage(sender, replyMsg);
     }
     
     if (parsed.category === "FINANCE") {
@@ -208,7 +182,7 @@ export async function POST(request: Request) {
         },
       });
       const replyMsg = `✅ DATA FINANSIAL MASUK\n🏦 ${parsed.wallet}\n📊 ${parsed.action === "IN" ? "PEMASUKAN" : "PENGELUARAN"}: Rp${parsed.amount?.toLocaleString("id-ID")}\n📝 ${parsed.description}`;
-      await sendWhatsAppMessage(from, replyMsg);
+      await sendFonnteMessage(sender, replyMsg);
     }
 
     return NextResponse.json({ status: "success" });
