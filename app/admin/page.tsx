@@ -1,10 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
 import DashboardChart from "@/components/DashboardChart";
-import ExpensePieChart from "@/components/ExpensePieChart"; // 🔥 IMPORT PIE CHART
-import { Wallet, TrendingUp, DollarSign, Landmark, CheckSquare, CalendarClock, PieChart as PieChartIcon } from "lucide-react"; // 🔥 TAMBAH ICON
+import ExpensePieChart from "@/components/ExpensePieChart"; 
+import { Wallet, TrendingUp, DollarSign, Landmark, CheckSquare, CalendarClock, PieChart as PieChartIcon } from "lucide-react"; 
 import { google } from "googleapis";
+import YahooFinance from "yahoo-finance2"; // 🔥 IMPORT YAHOO FINANCE
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0; 
+
+const yahooFinance = new YahooFinance();
 
 // ==========================================
 // 🧠 HELPER 1: TARIK DATA GOOGLE TASKS
@@ -45,7 +50,6 @@ async function getGoogleCalendarEvents() {
 
     const calendar = google.calendar({ version: "v3", auth });
     
-    // Set waktu dari 00:00 hari ini sampai 23:59 hari ini
     const now = new Date();
     const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString();
     const endOfDay = new Date(now.setHours(23, 59, 59, 999)).toISOString();
@@ -94,39 +98,55 @@ export default async function AdminDashboard({
   const range = resolvedParams?.range || "1M"; 
   const startDate = getStartDate(range);
 
-  // 1. TARIK SEMUA DATA EKSTERNAL (WEALTH, TASKS, CALENDAR)
-  const [financialLogs, stocks, tasks, calendarEvents] = await Promise.all([
+  // 1. TARIK SEMUA DATA EKSTERNAL & DATABASE
+  const [financialLogs, dbStocks, tasks, calendarEvents] = await Promise.all([
     prisma.financialLog.findMany(),
     prisma.stockPortfolio.findMany(),
     getGoogleTasks(),
     getGoogleCalendarEvents(),
   ]);
 
+  // 🔥 2. CANGKOK LOGIKA YAHOO FINANCE BUAT HARGA LIVE
+  const stocks = await Promise.all(
+    dbStocks.map(async (stock) => {
+      try {
+        const quote: any = await yahooFinance.quote(`${stock.emitenCode}.JK`);
+        const livePrice = quote.regularMarketPrice || stock.averageBuyPrice;
+        const liveTotalValue = livePrice * stock.lotQuantity * 100;
+        return { ...stock, totalValue: liveTotalValue };
+      } catch {
+        return { ...stock, totalValue: stock.totalInvested }; // Fallback kalau down
+      }
+    })
+  );
+
   let totalIn = 0; let totalOut = 0;
-  financialLogs.forEach(log => {
+  financialLogs.forEach((log: any) => {
     if (log.type === "IN") totalIn += log.amount;
     if (log.type === "OUT") totalOut += log.amount;
   });
+  
   const liquidBalance = totalIn - totalOut;
-  const stockAssets = stocks.reduce((acc, stock) => acc + (stock.totalValue || stock.totalInvested), 0);
-  const netWorth = liquidBalance + stockAssets;
+  // 🔥 FIX: Sekarang udah ngambil hasil kalkulasi live dari Yahoo Finance
+  const stockAssetsLive = stocks.reduce((acc: any, stock: any) => acc + stock.totalValue, 0);
+  const netWorth = liquidBalance + stockAssetsLive;
 
   // 🔥 LOGIC BARU: Ngitung Kategori Pengeluaran buat Pie Chart
-  const expenseLogs = financialLogs.filter(log => log.type === "OUT");
+  const expenseLogs = financialLogs.filter((log: any) => log.type === "OUT");
   const categoryMap = new Map<string, number>();
-  expenseLogs.forEach(log => {
+  expenseLogs.forEach((log: any) => {
     const cat = log.category || "Lain-lain";
     categoryMap.set(cat, (categoryMap.get(cat) || 0) + log.amount);
   });
   const pieChartData = Array.from(categoryMap.entries())
     .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value); // Urutkan dari yang paling boros
+    .sort((a, b) => b.value - a.value);
 
   const formatIDR = (amount: number) => {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
   };
 
-  // 2. TARIK DATA PORTOFOLIO WEB
+  // 3. TARIK DATA PORTOFOLIO WEB
   const [totalPengalaman, totalProyek, totalPendidikan, totalShortlink] = await Promise.all([
     prisma.experience.count(),
     prisma.project.count(),
@@ -134,19 +154,19 @@ export default async function AdminDashboard({
     prisma.shortlink.count(),
   ]);
 
-  // 3. TARIK DATA ANALYTICS
+  // 4. TARIK DATA ANALYTICS
   const logsInRanges = await prisma.visitorLog.findMany({
     where: { createdAt: { gte: startDate } },
     orderBy: { createdAt: "asc" },
   });
 
   const visitorsMap = new Map();
-  logsInRanges.forEach(log => visitorsMap.set(log.sessionId, true));
+  logsInRanges.forEach((log: any) => visitorsMap.set(log.sessionId, true));
   const totalUnique = visitorsMap.size;
   const totalPageViews = logsInRanges.length;
 
   const dailyDataMap = new Map();
-  logsInRanges.forEach((log) => {
+  logsInRanges.forEach((log: any) => {
     let intervalKey: string;
     if (range === "1D") intervalKey = log.createdAt.toISOString().substring(0, 13) + ":00:00.000Z";
     else intervalKey = log.createdAt.toISOString().substring(0, 10) + "T00:00:00.000Z";
@@ -156,7 +176,7 @@ export default async function AdminDashboard({
   const chartData = Array.from(dailyDataMap.entries()).map(([dateStr, count]) => {
     const dateObj = new Date(dateStr);
     return { name: formatChartDate(dateObj, range), total: count, fullDate: dateObj.getTime() };
-  }).sort((a, b) => a.fullDate - b.fullDate);
+  }).sort((a: any, b: any) => a.fullDate - b.fullDate);
 
   // ==========================================
   // 🎨 RENDER UI PROFESSIONAL
@@ -194,8 +214,8 @@ export default async function AdminDashboard({
           <div className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4 hover:bg-white/5 transition-colors">
              <div className="bg-emerald-500/20 p-2 sm:p-3 rounded-xl sm:rounded-2xl"><TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" /></div>
              <div>
-               <p className="text-[10px] sm:text-xs font-bold text-emerald-200 uppercase tracking-widest mb-1">Aset Saham</p>
-               <p className="text-xl sm:text-2xl font-bold">{formatIDR(stockAssets)}</p>
+               <p className="text-[10px] sm:text-xs font-bold text-emerald-200 uppercase tracking-widest mb-1">Aset Saham (Live Value)</p>
+               <p className="text-xl sm:text-2xl font-bold">{formatIDR(stockAssetsLive)}</p>
              </div>
           </div>
         </div>
@@ -225,7 +245,7 @@ export default async function AdminDashboard({
 
         {/* KANAN (Pie Chart - 1 Kolom) */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col min-h-[400px] overflow-hidden">
-          <div className="bg-gradient-to-r from-orange-500 to-orange-400 px-6 py-4 flex items-center justify-between text-white">
+          <div className="bg-[#013880] px-6 py-4 flex items-center justify-between text-white">
             <div className="flex items-center gap-3">
               <PieChartIcon size={20} />
               <h2 className="text-sm font-bold uppercase tracking-widest">Kategori Pengeluaran</h2>
@@ -242,7 +262,7 @@ export default async function AdminDashboard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col max-h-[500px] overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-4 flex items-center justify-between text-white">
+          <div className="bg-[#013880] px-6 py-4 flex items-center justify-between text-white">
             <div className="flex items-center gap-3">
               <CalendarClock size={20} />
               <h2 className="text-sm font-bold uppercase tracking-widest">Agenda Hari Ini</h2>
@@ -253,15 +273,15 @@ export default async function AdminDashboard({
           <div className="p-6 overflow-y-auto bg-slate-50/50 hide-scrollbar">
             {calendarEvents.length > 0 ? (
               <div className="relative border-l-2 border-blue-200 ml-3 space-y-6">
-                {calendarEvents.map((event) => {
+                {calendarEvents.map((event: any) => {
                   const startTime = event.start?.dateTime 
                     ? new Date(event.start.dateTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')
                     : "All Day";
                   
                   return (
                     <div key={event.id} className="relative pl-6">
-                      <div className="absolute w-4 h-4 bg-blue-600 rounded-full -left-[9px] top-1 border-4 border-white shadow-sm"></div>
-                      <p className="text-xs font-bold text-blue-600 mb-1">{startTime}</p>
+                      <div className="absolute w-4 h-4 bg-[#013880] rounded-full -left-[9px] top-1 border-4 border-white shadow-sm"></div>
+                      <p className="text-xs font-bold text-[#013880] mb-1">{startTime}</p>
                       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                         <p className="text-sm font-bold text-slate-800">{event.summary}</p>
                       </div>
@@ -279,7 +299,7 @@ export default async function AdminDashboard({
         </div>
 
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 flex flex-col max-h-[500px] overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-4 flex items-center justify-between text-white">
+          <div className="bg-[#013880] px-6 py-4 flex items-center justify-between text-white">
             <div className="flex items-center gap-3">
               <CheckSquare size={20} />
               <h2 className="text-sm font-bold uppercase tracking-widest">Urgent Tasks</h2>
@@ -290,9 +310,9 @@ export default async function AdminDashboard({
           <div className="p-6 overflow-y-auto bg-slate-50/50 hide-scrollbar">
             {tasks.length > 0 ? (
               <ul className="space-y-4">
-                {tasks.map((task) => (
+                {tasks.map((task: any) => (
                   <li key={task.id} className="flex items-start gap-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="mt-1 w-4 h-4 rounded border-2 border-emerald-500/50 flex-shrink-0"></div>
+                    <div className="mt-1 w-4 h-4 rounded border-2 border-[#013880]/50 flex-shrink-0"></div>
                     <div>
                       <p className="text-sm font-bold text-slate-800">{task.title}</p>
                       {task.notes && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{task.notes}</p>}

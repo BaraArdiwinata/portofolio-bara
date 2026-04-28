@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { ArrowDownRight, ArrowUpRight, Wallet, Landmark } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Wallet, Landmark, Activity } from "lucide-react";
+import FinanceLineChart from "@/components/FinanceLineChart"; // 🔥 IMPORT GRAFIK BARU
 
 export const dynamic = "force-dynamic";
 
@@ -11,15 +12,41 @@ export default async function FinanceDashboard() {
   let totalIn = 0;
   let totalOut = 0;
   const walletBalances: Record<string, number> = {};
+  
+  // 🔥 Siapin keranjang buat data Grafik (Dikelompokkan per hari)
+  const chartDataMap = new Map<string, { dateStr: string; in: number; out: number; timestamp: number }>();
 
   logs.forEach((log) => {
+    // 1. Kalkulasi Card & Dompet
     if (log.type === "IN") totalIn += log.amount;
     if (log.type === "OUT") totalOut += log.amount;
 
     if (!walletBalances[log.wallet]) walletBalances[log.wallet] = 0;
     if (log.type === "IN") walletBalances[log.wallet] += log.amount;
     else if (log.type === "OUT") walletBalances[log.wallet] -= log.amount;
+
+    // 2. Kalkulasi Grafik
+    const dateObj = new Date(log.createdAt);
+    const dateStr = dateObj.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+    const timestamp = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()).getTime();
+
+    if (!chartDataMap.has(dateStr)) {
+      chartDataMap.set(dateStr, { dateStr, in: 0, out: 0, timestamp });
+    }
+
+    const currentDay = chartDataMap.get(dateStr)!;
+    if (log.type === "IN") currentDay.in += log.amount;
+    if (log.type === "OUT") currentDay.out += log.amount;
   });
+
+  // Urutkan data grafik dari tanggal terlama ke terbaru biar ngalir dari kiri ke kanan
+  const financeChartData = Array.from(chartDataMap.values())
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map((item) => ({
+      name: item.dateStr,
+      Pemasukan: item.in,
+      Pengeluaran: item.out,
+    }));
 
   const balance = totalIn - totalOut;
 
@@ -34,6 +61,7 @@ export default async function FinanceDashboard() {
         <p className="text-gray-500 mt-1 text-sm">Laporan mutasi dompet dan rekening dari JARVIS.</p>
       </div>
 
+      {/* TIGA KARTU UTAMA */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-[#013880] text-white p-6 rounded-3xl shadow-lg">
           <div className="flex items-center gap-3 mb-4 opacity-80">
@@ -58,6 +86,24 @@ export default async function FinanceDashboard() {
         </div>
       </div>
 
+      {/* 🔥 GRAFIK ARUS KAS BARU */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+          <Activity className="text-[#013880]" size={20} />
+          <h3 className="font-bold text-gray-800 tracking-wide">Tren Arus Kas Harian</h3>
+        </div>
+        <div className="p-6">
+          {financeChartData.length > 0 ? (
+            <FinanceLineChart data={financeChartData} />
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400 font-medium">
+              Belum ada data transaksi yang cukup untuk grafik.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SALDO PER DOMPET */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
          <div className="flex items-center gap-3 mb-6">
             <Landmark className="text-[#013880]" size={24} />
@@ -78,6 +124,7 @@ export default async function FinanceDashboard() {
         </div>
       </div>
 
+      {/* RIWAYAT TRANSAKSI */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
           <h3 className="font-bold text-gray-800">Riwayat Transaksi Terbaru</h3>
