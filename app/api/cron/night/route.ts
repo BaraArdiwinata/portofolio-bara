@@ -1,41 +1,72 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import YahooFinance from "yahoo-finance2";
 
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+// 🔥 PAKE FONNTE SEKARANG
+const FONNTE_TOKEN = process.env.FONNTE_TOKEN;
 const MY_NUMBER = "6281233177952"; // Nomor WA asli lu
+const yahooFinance = new YahooFinance();
 
-async function sendWhatsAppMessage(to: string, body: string) {
-  const url = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`;
-  await fetch(url, {
+// ==========================================
+// 1. FUNGSI KIRIM WA (FONNTE)
+// ==========================================
+async function sendFonnteMessage(target: string, message: string) {
+  const url = "https://api.fonnte.com/send";
+  const response = await fetch(url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${ACCESS_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body } }),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: FONNTE_TOKEN || "",
+    },
+    body: JSON.stringify({
+      target: target,
+      message: message,
+    }),
   });
+  if (!response.ok) {
+    console.error("❌ Gagal kirim Fonnte:", await response.text());
+  }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    // 1. Hitung Net Worth
-    const [financialLogs, stocks] = await Promise.all([
+    // 1. Tarik Data Database
+    const [financialLogs, dbStocks] = await Promise.all([
       prisma.financialLog.findMany(),
       prisma.stockPortfolio.findMany(),
     ]);
 
+    // 2. Tarik Harga Saham Live Penutupan Hari Ini
+    const stocks = await Promise.all(
+      dbStocks.map(async (stock) => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const quote: any = await yahooFinance.quote(`${stock.emitenCode}.JK`);
+          const livePrice = quote.regularMarketPrice || stock.averageBuyPrice;
+          const liveTotalValue = livePrice * stock.lotQuantity * 100;
+          return { ...stock, totalValue: liveTotalValue };
+        } catch {
+          return { ...stock, totalValue: stock.totalInvested };
+        }
+      })
+    );
+
+    // 3. Kalkulasi Net Worth
     let totalIn = 0; let totalOut = 0;
-    financialLogs.forEach(log => {
+    financialLogs.forEach((log) => {
       if (log.type === "IN") totalIn += log.amount;
       if (log.type === "OUT") totalOut += log.amount;
     });
+    
     const liquidBalance = totalIn - totalOut;
-    const stockAssets = stocks.reduce((acc, stock) => acc + (stock.totalValue || stock.totalInvested), 0);
-    const netWorth = liquidBalance + stockAssets;
+    const stockAssetsLive = stocks.reduce((acc, stock) => acc + stock.totalValue, 0);
+    const netWorth = liquidBalance + stockAssetsLive;
 
-    // 2. Bikin Teks Laporan Malam
-    const message = `🌙 *JARVIS NIGHTLY RECAP*\n\nSelamat istirahat Bos Bara. Ini ringkasan asetmu hari ini:\n\n💵 *Saldo Liquid:* Rp${liquidBalance.toLocaleString("id-ID")}\n📈 *Aset Saham:* Rp${stockAssets.toLocaleString("id-ID")}\n💎 *TOTAL NET WORTH:* Rp${netWorth.toLocaleString("id-ID")}\n\nGood night, sleep tight! 💤`;
+    // 4. Bikin Teks Laporan Malam
+    const message = `🌙 *JARVIS NIGHTLY RECAP*\n\nSelamat istirahat Bara. Ini ringkasan asetmu hari ini (Closing Market):\n\n💵 *Saldo Liquid:* Rp${liquidBalance.toLocaleString("id-ID")}\n📈 *Aset Saham (Live):* Rp${stockAssetsLive.toLocaleString("id-ID")}\n💎 *TOTAL NET WORTH:* Rp${netWorth.toLocaleString("id-ID")}\n\nGood night, sleep tight! 💤`;
 
-    // 3. Tembak ke WA lu!
-    await sendWhatsAppMessage(MY_NUMBER, message);
+    // 5. Tembak ke WA lu!
+    await sendFonnteMessage(MY_NUMBER, message);
 
     return NextResponse.json({ status: "success", message: "Nightly Recap Sent" });
   } catch (error) {

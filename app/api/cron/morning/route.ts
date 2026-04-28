@@ -2,20 +2,29 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { google } from "googleapis";
 
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+// 🔥 PAKE FONNTE SEKARANG
+const FONNTE_TOKEN = process.env.FONNTE_TOKEN;
 const MY_NUMBER = "6281233177952"; // Nomor WA asli lu
 
 // ==========================================
-// 1. FUNGSI KIRIM WA
+// 1. FUNGSI KIRIM WA (FONNTE)
 // ==========================================
-async function sendWhatsAppMessage(to: string, body: string) {
-  const url = `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`;
-  await fetch(url, {
+async function sendFonnteMessage(target: string, message: string) {
+  const url = "https://api.fonnte.com/send";
+  const response = await fetch(url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${ACCESS_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body } }),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: FONNTE_TOKEN || "",
+    },
+    body: JSON.stringify({
+      target: target,
+      message: message,
+    }),
   });
+  if (!response.ok) {
+    console.error("❌ Gagal kirim Fonnte:", await response.text());
+  }
 }
 
 // ==========================================
@@ -26,7 +35,6 @@ async function getTodayAgenda() {
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        // Hack penting: Replace \\n jadi \n beneran biar key-nya gak error
         private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       },
       scopes: ["https://www.googleapis.com/auth/calendar.readonly"],
@@ -34,7 +42,6 @@ async function getTodayAgenda() {
 
     const calendar = google.calendar({ version: "v3", auth });
     
-    // Set waktu dari 00:00 hari ini sampai 23:59 hari ini
     const now = new Date();
     const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString();
     const endOfDay = new Date(now.setHours(23, 59, 59, 999)).toISOString();
@@ -53,8 +60,7 @@ async function getTodayAgenda() {
     }
 
     let agendaText = "";
-    events.forEach((event, index) => {
-      // Format jam (contoh: 10:00)
+    events.forEach((event) => {
       const startTime = event.start?.dateTime 
         ? new Date(event.start.dateTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')
         : "All Day";
@@ -71,12 +77,12 @@ async function getTodayAgenda() {
 // ==========================================
 // 3. ENDPOINT CRON JOB (JAM 6 PAGI)
 // ==========================================
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // 1. Tarik Saldo Finance
     const logs = await prisma.financialLog.findMany();
     let totalIn = 0; let totalOut = 0;
-    logs.forEach(log => {
+    logs.forEach((log) => {
       if (log.type === "IN") totalIn += log.amount;
       if (log.type === "OUT") totalOut += log.amount;
     });
@@ -86,10 +92,10 @@ export async function GET(request: Request) {
     const agendaHariIni = await getTodayAgenda();
 
     // 3. Rakit Pesan JARVIS
-    const message = `☀️ *SELAMAT PAGI BOS BARA!*\n\nSemoga hari ini penuh semangat! 🔥\n\n💰 *Saldo Liquid Saat Ini:* Rp${liquidBalance.toLocaleString("id-ID")}\n\n📋 *AGENDA HARI INI:*\n${agendaHariIni}\n\nJangan lupa sarapan dan semangat berkarya! 🚀`;
+    const message = `☀️ *SELAMAT PAGI BARA!*\n\nSemoga hari ini penuh semangat! 🔥\n\n💰 *Saldo Liquid Saat Ini:* Rp${liquidBalance.toLocaleString("id-ID")}\n\n📋 *AGENDA HARI INI:*\n${agendaHariIni}\n\nJangan lupa sarapan dan semangat berkarya! 🚀`;
 
     // 4. Kirim WA!
-    await sendWhatsAppMessage(MY_NUMBER, message);
+    await sendFonnteMessage(MY_NUMBER, message);
 
     return NextResponse.json({ status: "success", agenda: agendaHariIni });
   } catch (error) {
