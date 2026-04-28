@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { handleStockAction } from "@/actions/stock"; 
 import { GoogleGenerativeAI } from "@google/generative-ai"; 
+import { google } from "googleapis";
 
 const FONNTE_TOKEN = process.env.FONNTE_TOKEN;
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -214,6 +215,87 @@ export async function POST(request: Request) {
         await sendFonnteMessage(sender, "❌ JARVIS gagal konek ke satelit Google.");
         return NextResponse.json({ status: "fetch error" });
       }
+    }
+
+    // =================================================================
+    // 🔥 FITUR BARU: GOOGLE TASKS SINKRONISASI
+    // Format: TASK [Judul] [DD/MM] [HH.MM]
+    // =================================================================
+    const taskMatch = text.match(/^TASK\s+(.+?)\s+(\d{2}\/\d{2})\s+(\d{2}\.\d{2})$/i);
+    if (taskMatch) {
+      const title = taskMatch[1];
+      const [day, month] = taskMatch[2].split('/');
+      const [hour, minute] = taskMatch[3].split('.');
+      const currentYear = new Date().getFullYear();
+      
+      // Format waktu dengan zona WIB (+07:00)
+      const dueTimeISO = `${currentYear}-${month}-${day}T${hour}:${minute}:00+07:00`;
+
+      try {
+        const oauth2Client = new google.auth.OAuth2(
+          process.env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_CLIENT_SECRET
+        );
+        oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+
+        const tasks = google.tasks({ version: 'v1', auth: oauth2Client });
+        await tasks.tasks.insert({
+          tasklist: '@default', // Masuk ke list utama
+          requestBody: {
+            title: title,
+            due: dueTimeISO
+          }
+        });
+
+        await sendFonnteMessage(sender, `✅ *TASK DITAMBAHKAN*\n\n📝: ${title}\n⏳: ${taskMatch[2]} jam ${taskMatch[3]}\n\nJARVIS telah menyinkronkan tugas ini ke Google Tasks Anda!`);
+      } catch (error) {
+        console.error("❌ Google Tasks Error:", error);
+        await sendFonnteMessage(sender, "❌ Gagal menambahkan ke Google Tasks. Cek terminal Bos!");
+      }
+      return NextResponse.json({ status: "success" });
+    }
+
+    // =================================================================
+    // 🔥 FITUR BARU: GOOGLE CALENDAR SINKRONISASI
+    // Format: CALENDAR [Judul] [DD/MM] [HH.MM] - [HH.MM]
+    // =================================================================
+    const calMatch = text.match(/^CALENDAR\s+(.+?)\s+(\d{2}\/\d{2})\s+(\d{2}\.\d{2})\s*-\s*(\d{2}\.\d{2})$/i);
+    if (calMatch) {
+      const title = calMatch[1];
+      const [day, month] = calMatch[2].split('/');
+      const [startHour, startMinute] = calMatch[3].split('.');
+      const [endHour, endMinute] = calMatch[4].split('.');
+      const currentYear = new Date().getFullYear();
+
+      const startTimeISO = `${currentYear}-${month}-${day}T${startHour}:${startMinute}:00+07:00`;
+      const endTimeISO = `${currentYear}-${month}-${day}T${endHour}:${endMinute}:00+07:00`;
+
+      try {
+        // Pake Service Account bawaan yang udah lu setting di Cron
+        const auth = new google.auth.GoogleAuth({
+          credentials: {
+            client_email: process.env.GOOGLE_CLIENT_EMAIL,
+            private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          },
+          scopes: ["https://www.googleapis.com/auth/calendar.events"], // Akses nulis!
+        });
+
+        const calendar = google.calendar({ version: 'v3', auth });
+        await calendar.events.insert({
+          calendarId: process.env.GOOGLE_CALENDAR_ID,
+          requestBody: {
+            summary: title,
+            start: { dateTime: startTimeISO, timeZone: 'Asia/Jakarta' },
+            end: { dateTime: endTimeISO, timeZone: 'Asia/Jakarta' }
+          }
+        });
+
+        await sendFonnteMessage(sender, `✅ *AGENDA DIBUAT*\n\n📅: ${title}\n📆: ${calMatch[2]}\n⏰: ${calMatch[3]} - ${calMatch[4]}\n\nJARVIS telah memblokir kalender Anda!`);
+      } catch (error) {
+        console.error("❌ Google Calendar Error:", error);
+        await sendFonnteMessage(sender, "❌ Gagal membuat agenda di Google Calendar. Cek terminal Bos!");
+      }
+      return NextResponse.json({ status: "success" });
     }
 
     // LOGIC LAMA: PARSER MANUAL
