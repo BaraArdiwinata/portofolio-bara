@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ArrowDownRight, ArrowUpRight, Wallet, Landmark, Activity } from "lucide-react";
-import FinanceLineChart from "@/components/FinanceLineChart"; // 🔥 IMPORT GRAFIK BARU
+import FinanceLineChart from "@/components/FinanceLineChart";
+import RoastButton from "@/components/RoastButton";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,9 @@ export default async function FinanceDashboard() {
           <p className="text-3xl font-black text-gray-900">{formatIDR(totalOut)}</p>
         </div>
       </div>
+
+      {/* 🔥 TOMBOL ROASTING AI */}
+    <RoastButton />
 
       {/* 🔥 GRAFIK ARUS KAS BARU */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">

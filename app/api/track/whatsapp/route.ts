@@ -159,6 +159,63 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "success" });
     }
 
+    // 🔥 FITUR BARU: ROASTING AI VIA WA (GEMINI 2.5 FLASH)
+    if (text === "ROAST") {
+      await sendFonnteMessage(sender, "🔥 JARVIS sedang menganalisis kebobrokan finansial Anda bulan ini. Mohon tunggu...");
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const logs = await prisma.financialLog.findMany({
+        where: { createdAt: { gte: startOfMonth } }
+      });
+
+      let totalIn = 0; let totalOut = 0;
+      const expenseDetails: string[] = [];
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      logs.forEach((log: any) => {
+        if (log.type === "IN") totalIn += log.amount;
+        if (log.type === "OUT") {
+          totalOut += log.amount;
+          expenseDetails.push(`${log.category || 'Lainnya'}: Rp${log.amount} (${log.description})`);
+        }
+      });
+
+      const prompt = `Kamu adalah JARVIS, asisten keuangan AI yang sangat cerewet, julid, dan suka memberikan kritik pedas tapi kocak ala stand-up komedi. Bos kamu (Bara) minta di-roasting soal keuangannya bulan ini.
+      Data Bulan Ini:
+      Pemasukan: Rp${totalIn}
+      Pengeluaran: Rp${totalOut}
+      Detail Pengeluaran: ${expenseDetails.join(", ")}
+
+      Berikan roastingan kocak dan menohok dalam bahasa Indonesia gaul gaul kekinian. Maksimal 3 paragraf singkat. Sindir pengeluarannya yang boros. Akhiri dengan satu kalimat motivasi tapi tetep nyinyir.`;
+
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        // 🔥 FIX: PAKE MODEL GEMINI 2.5 FLASH
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+           await sendFonnteMessage(sender, `❌ JARVIS Error dari Google: ${data.error?.message}`);
+           return NextResponse.json({ status: "error api" });
+        }
+
+        const roastText = data.candidates[0].content.parts[0].text;
+        await sendFonnteMessage(sender, `🔥 *ROASTING JARVIS* 🔥\n\n${roastText}`);
+        return NextResponse.json({ status: "success" });
+      } catch (error) {
+        await sendFonnteMessage(sender, "❌ JARVIS gagal konek ke satelit Google.");
+        return NextResponse.json({ status: "fetch error" });
+      }
+    }
+
     // LOGIC LAMA: PARSER MANUAL
     const parsed = parseMessage(text);
     if (!parsed) {

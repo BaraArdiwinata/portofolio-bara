@@ -11,10 +11,15 @@ const workSans = Work_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '
 
 // BIKIN KONTRAK DATA (PROPS)
 interface HomeClientProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leadershipExps: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventExps: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sosmasExps: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   masterpieceProjects: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   archiveProjects: any[];
 }
 
@@ -58,6 +63,15 @@ export default function HomeClient({
     else return { x: offset > 0 ? '150%' : '-150%', scale: 0.5, opacity: 0, zIndex: 0 };
   };
 
+  // 🔥 FUNGSI ALARM JARVIS (DIAM-DIAM JALAN DI BACKGROUND)
+  const handleDownloadCV = () => {
+    fetch("/api/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "DOWNLOAD_CV" })
+    }).catch(console.error);
+  };
+
   return (
     <main className={`relative min-h-screen bg-[#FAFAFA] text-slate-800 ${workSans.className} selection:bg-[#FFBD07] selection:text-[#013880] overflow-x-hidden`}>
       <div className="absolute inset-0 z-0 h-full w-full bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
@@ -95,17 +109,24 @@ export default function HomeClient({
               />
             </div>
             <div className="pt-4 flex flex-wrap items-center gap-4">
-              <a href="/CV_Bara_Ardiwinata.pdf" target="_blank" rel="noopener noreferrer" className="bg-[#013880] text-white px-8 py-4 rounded-full font-bold hover:bg-[#FFBD07] hover:text-[#013880] hover:shadow-lg hover:shadow-[#FFBD07]/30 transition-all flex items-center gap-2 w-fit">
-                <Download size={20} /> Download CV
-              </a>
-              <div className="flex gap-3">
-                <a href="https://www.linkedin.com/in/bara-ardiwinata/" target='_blank' rel="noopener noreferrer" className="p-4 rounded-full bg-blue-50 text-[#013880] hover:bg-[#FFBD07] hover:shadow-lg transition-all border border-blue-100" aria-label="LinkedIn">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                {/* 🔥 TAMBAHIN onClick={handleDownloadCV} DI DALAM TAG <a> INI */}
+                <a 
+                  href="/CV_Bara_Ardiwinata.pdf" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  onClick={handleDownloadCV} 
+                  className="bg-[#013880] text-white px-8 py-4 rounded-full font-bold hover:bg-[#FFBD07] hover:text-[#013880] hover:shadow-lg hover:shadow-[#FFBD07]/30 transition-all flex items-center gap-2 w-fit"
+                >
+                  <Download size={20} /> Download CV
                 </a>
-                <a href="https://github.com/BaraArdiwinata" target='_blank' rel="noopener noreferrer" className="p-4 rounded-full bg-blue-50 text-[#013880] hover:bg-[#FFBD07] hover:shadow-lg transition-all border border-blue-100" aria-label="GitHub">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A4.8 4.8 0 0 0 8 18v4"></path><path d="M12 18s-3 2-4 2-3-2-3-2"></path></svg>
-                </a>
-              </div>
+                <div className="flex gap-3">
+                  <a href="https://www.linkedin.com/in/bara-ardiwinata/" target='_blank' rel="noopener noreferrer" className="p-4 rounded-full bg-blue-50 text-[#013880] hover:bg-[#FFBD07] hover:shadow-lg transition-all border border-blue-100" aria-label="LinkedIn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                  </a>
+                  <a href="https://github.com/BaraArdiwinata" target='_blank' rel="noopener noreferrer" className="p-4 rounded-full bg-blue-50 text-[#013880] hover:bg-[#FFBD07] hover:shadow-lg transition-all border border-blue-100" aria-label="GitHub">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A4.8 4.8 0 0 0 8 18v4"></path><path d="M12 18s-3 2-4 2-3-2-3-2"></path></svg>
+                  </a>
+                </div>
             </div>
           </motion.div>
           <div className="relative z-10 flex-shrink-0 mt-8 md:mt-0">
