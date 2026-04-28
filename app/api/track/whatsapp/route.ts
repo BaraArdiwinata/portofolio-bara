@@ -298,6 +298,55 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "success" });
     }
 
+    // =================================================================
+    // 🔥 FITUR BARU: TANDAI TASK SELESAI (MARK AS DONE)
+    // Format: TASK DONE [Kata Kunci Judul]
+    // =================================================================
+    const doneMatch = text.match(/^TASK\s+DONE\s+(.+)$/i);
+    if (doneMatch) {
+      const keyword = doneMatch[1].toLowerCase().trim();
+
+      try {
+        const oauth2Client = new google.auth.OAuth2(
+          process.env.GOOGLE_CLIENT_ID,
+          process.env.GOOGLE_CLIENT_SECRET
+        );
+        oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+        const tasksApi = google.tasks({ version: 'v1', auth: oauth2Client });
+
+        // 1. Ambil semua task yang masih pending
+        const response = await tasksApi.tasks.list({
+          tasklist: '@default',
+          showHidden: false, // Hanya tarik task yang belum selesai
+        });
+
+        const pendingTasks = response.data.items || [];
+        
+        // 2. Cari task yang judulnya mengandung kata kunci (Fuzzy Search)
+        const matchedTask = pendingTasks.find(t => t.title && t.title.toLowerCase().includes(keyword));
+
+        if (!matchedTask) {
+          await sendFonnteMessage(sender, `❌ JARVIS tidak menemukan task yang mengandung kata "${keyword}". Pastikan ejaannya mirip Bos!`);
+          return NextResponse.json({ status: "not found" });
+        }
+
+        // 3. Eksekusi coret Task!
+        await tasksApi.tasks.patch({
+          tasklist: '@default',
+          task: matchedTask.id!,
+          requestBody: {
+            status: 'completed'
+          }
+        });
+
+        await sendFonnteMessage(sender, `✅ *TASK SELESAI*\n\nJARVIS telah mencoret tugas ini dari daftar:\n📝: ${matchedTask.title}\n\nGood job, Bos! Lanjut eksekusi yang lain! 🔥`);
+      } catch (error) {
+        console.error("❌ Google Tasks Update Error:", error);
+        await sendFonnteMessage(sender, "❌ Gagal mencoret Google Tasks. Cek terminal Bos!");
+      }
+      return NextResponse.json({ status: "success" });
+    }
+
     // LOGIC LAMA: PARSER MANUAL
     const parsed = parseMessage(text);
     if (!parsed) {
