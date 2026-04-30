@@ -42,9 +42,18 @@ async function getTodayAgenda() {
 
     const calendar = google.calendar({ version: "v3", auth });
     
-    const now = new Date();
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-    const endOfDay = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+    // 🔥 FIX: Paksa ambil tanggal hari ini sesuai zona WIB (Asia/Jakarta)
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    
+    // Pecah format MM/DD/YYYY dari Intl.DateTimeFormat
+    const [{value: mo}, , {value: da}, , {value: ye}] = formatter.formatToParts(new Date());
+
+    // Rakit manual ISO string dengan offset +07:00 (WIB)
+    const startOfDay = `${ye}-${mo}-${da}T00:00:00+07:00`;
+    const endOfDay = `${ye}-${mo}-${da}T23:59:59+07:00`;
 
     const response = await calendar.events.list({
       calendarId: process.env.GOOGLE_CALENDAR_ID,
@@ -92,7 +101,7 @@ export async function GET() {
     const agendaHariIni = await getTodayAgenda();
 
     // 3. Rakit Pesan JARVIS
-    const message = `☀️ *SELAMAT PAGI BARA!*\n\nSemoga hari ini penuh semangat! 🔥\n\n💰 *Saldo Liquid Saat Ini:* Rp${liquidBalance.toLocaleString("id-ID")}\n\n📋 *AGENDA HARI INI:*\n${agendaHariIni}\n\nJangan lupa sarapan dan semangat berkarya! 🚀`;
+    const message = `☀️ *JARVIS DAILY REMINDER*\n\nSelamat pagi Bara.\nSemoga hari ini penuh semangat! 🔥\n\n💰 *Saldo Liquid Saat Ini:* Rp${liquidBalance.toLocaleString("id-ID")}\n\n📋 *AGENDA HARI INI:*\n${agendaHariIni}\n\nJangan lupa sarapan dan semangat berkarya! 🚀`;
 
     // 4. Kirim WA!
     await sendFonnteMessage(MY_NUMBER, message);
