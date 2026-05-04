@@ -108,3 +108,14 @@ model PushSubscription {
   auth      String
   createdAt DateTime @default(now())
 }
+
+model HealthLog {
+  id          String   @id @default(cuid())
+  foodName    String   // Contoh: "Nasi Padang Ayam Pop"
+  calories    Int      // Total Kalori (kcal)
+  protein     Float    // Gram
+  carbs       Float    // Gram
+  fat         Float    // Gram
+  sugar       Float    // Gram
+  loggedAt    DateTime @default(now()) // Waktu makan
+}

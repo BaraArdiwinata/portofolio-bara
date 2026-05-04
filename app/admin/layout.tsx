@@ -13,7 +13,8 @@ import {
   X,
   Link2,
   Wallet,
-  TrendingUp
+  TrendingUp,
+  Activity // 👈 INI ICON BARU BUAT KESEHATAN
 } from "lucide-react";
 
 // 🟢 Komponen NavLinks
@@ -21,11 +22,12 @@ function NavLinks({ expanded, onLinkClick }: { expanded: boolean; onLinkClick: (
   const pathname = usePathname();
   const isActive = (path: string) => pathname === path;
 
-  // 👇 Menu Items aku update buat masukin Keuangan & Saham!
+  // 👇 Menu Klinik JARVIS udah masuk sini!
   const menuItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/finance", label: "Keuangan (JARVIS)", icon: Wallet },
     { href: "/admin/stocks", label: "Portofolio Saham", icon: TrendingUp },
+    { href: "/admin/health", label: "Klinik JARVIS", icon: Activity }, // 👈 TAMBAHAN BARU
     { href: "/admin/experiences", label: "Pengalaman", icon: Briefcase },
     { href: "/admin/projects", label: "Proyek", icon: FolderDot },
     { href: "/admin/education", label: "Pendidikan", icon: GraduationCap },
@@ -61,7 +63,7 @@ function NavLinks({ expanded, onLinkClick }: { expanded: boolean; onLinkClick: (
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isDesktopExpanded, setIsDesktopExpanded] = useState(true); // Default kebuka aja biar jelas
+  const [isDesktopExpanded, setIsDesktopExpanded] = useState(true);
 
   return (
     <div className="flex h-screen w-full bg-[#FAFAFA] relative overflow-hidden">
@@ -70,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#007BC0]/10 blur-[120px] z-0 pointer-events-none transform-gpu"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[50%] rounded-full bg-[#FFBD07]/10 blur-[120px] z-0 pointer-events-none transform-gpu"></div>
 
-      {/* 👈 SIDEBAR DESKTOP (BISA NYUSUT) */}
+      {/* 👈 SIDEBAR DESKTOP */}
       <aside className={`hidden md:flex flex-col border-r border-slate-200/60 bg-white/80 backdrop-blur-xl transition-all duration-300 z-40 h-full flex-shrink-0 ${isDesktopExpanded ? "w-72 p-6" : "w-24 p-4"}`}>
         <div className={`mb-10 flex items-center h-10 ${isDesktopExpanded ? "justify-between" : "justify-center"}`}>
           {isDesktopExpanded ? (
@@ -88,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* 📱 SIDEBAR MOBILE (OVERLAY) */}
+      {/* 📱 SIDEBAR MOBILE */}
       {isMobileOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[50] md:hidden"
@@ -138,7 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        {/* AREA KONTEN (SCROLLABLE) */}
+        {/* AREA KONTEN */}
         <main className="flex-1 p-6 md:p-10 overflow-x-hidden overflow-y-auto relative">
           {children}
         </main>

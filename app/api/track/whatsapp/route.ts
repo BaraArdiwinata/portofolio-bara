@@ -212,6 +212,7 @@ export async function POST(request: Request) {
         await sendFonnteMessage(sender, `🔥 *ROASTING JARVIS* 🔥\n\n${roastText}`);
         return NextResponse.json({ status: "success" });
       } catch (error) {
+        console.error("❌ Roasting Error:", error);
         await sendFonnteMessage(sender, "❌ JARVIS gagal konek ke satelit Google.");
         return NextResponse.json({ status: "fetch error" });
       }
@@ -343,6 +344,81 @@ export async function POST(request: Request) {
       } catch (error) {
         console.error("❌ Google Tasks Update Error:", error);
         await sendFonnteMessage(sender, "❌ Gagal mencoret Google Tasks. Cek terminal Bos!");
+      }
+      return NextResponse.json({ status: "success" });
+    }
+
+    // =================================================================
+    // 🔥 FITUR BARU: NUTRITION & CALORIE TRACKER (AI AI-AN)
+    // Format: EAT [Nama Makanan] atau DRINK [Nama Minuman]
+    // =================================================================
+    const eatMatch = text.match(/^(?:EAT|DRINK)\s+(.+)$/i);
+    if (eatMatch) {
+      const foodDescription = eatMatch[1].trim();
+      await sendFonnteMessage(sender, `⏳ JARVIS sedang meneliti kandungan gizi dari: ${foodDescription}...`);
+
+      try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `Kamu adalah ahli gizi. Estimasikan kandungan gizi untuk makanan ini: "${foodDescription}".
+        Kembalikan HANYA format JSON valid (tanpa blok kode markdown).
+        Format yang diwajibkan:
+        {
+          "foodName": "(Nama makanan yang rapi, max 30 karakter)",
+          "calories": (integer, estimasi total kalori dalam kcal),
+          "protein": (float, estimasi total protein dalam gram),
+          "carbs": (float, estimasi total karbohidrat dalam gram),
+          "fat": (float, estimasi total lemak dalam gram),
+          "sugar": (float, estimasi total gula dalam gram)
+        }`;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        const nutritionData = JSON.parse(cleanJson);
+
+        // 1. Simpan ke Database
+        await prisma.healthLog.create({
+          data: {
+            foodName: nutritionData.foodName,
+            calories: nutritionData.calories,
+            protein: nutritionData.protein,
+            carbs: nutritionData.carbs,
+            fat: nutritionData.fat,
+            sugar: nutritionData.sugar,
+          }
+        });
+
+        // 2. Hitung Total Kalori Hari Ini (Zona Waktu WIB)
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Jakarta',
+          year: 'numeric', month: '2-digit', day: '2-digit'
+        });
+        const [{value: mo}, , {value: da}, , {value: ye}] = formatter.formatToParts(new Date());
+        const startOfDay = new Date(`${ye}-${mo}-${da}T00:00:00+07:00`);
+        const endOfDay = new Date(`${ye}-${mo}-${da}T23:59:59+07:00`);
+
+        const todaysLogs = await prisma.healthLog.findMany({
+          where: {
+            loggedAt: { gte: startOfDay, lte: endOfDay }
+          }
+        });
+
+        let totalCaloriesToday = 0;
+        todaysLogs.forEach(log => totalCaloriesToday += log.calories);
+
+        // 3. Set Target Kalori Bos Bara (Misal: 2200 kcal/hari)
+        const targetCalories = 2200; 
+        const remaining = targetCalories - totalCaloriesToday;
+        const sisaTeks = remaining > 0 ? `${remaining} kcal` : `OVER LIMIT! 🚨 Kurangin jajan Bos!`;
+
+        // 4. Kirim Balasan
+        const replyMsg = `✅ *FOOD RECORDED!*\n\n🍛 Menu: ${nutritionData.foodName}\n🔥 Kalori: ${nutritionData.calories} kcal\n🥩 Protein: ${nutritionData.protein}g\n🍚 Karbo: ${nutritionData.carbs}g\n🥑 Lemak: ${nutritionData.fat}g\n🍭 Gula: ${nutritionData.sugar}g\n\n📊 *DAILY CALORIES:*\nMasuk: ${totalCaloriesToday} / ${targetCalories} kcal\nSisa Kuota: ${sisaTeks}`;
+
+        await sendFonnteMessage(sender, replyMsg);
+
+      } catch (error) {
+        console.error("❌ AI Nutrition Error:", error);
+        await sendFonnteMessage(sender, "❌ JARVIS kebingungan menebak makanan itu. Coba ejaan yang lebih jelas Bos!");
       }
       return NextResponse.json({ status: "success" });
     }

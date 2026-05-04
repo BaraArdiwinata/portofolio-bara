@@ -30,7 +30,7 @@ async function sendFonnteMessage(target: string, message: string) {
 
 export async function GET() {
   try {
-    // 1. Tarik Data Database
+    // 1. Tarik Data Database (Keuangan & Saham)
     const [financialLogs, dbStocks] = await Promise.all([
       prisma.financialLog.findMany(),
       prisma.stockPortfolio.findMany(),
@@ -38,7 +38,6 @@ export async function GET() {
 
     // 2. Tarik Harga Saham Live Penutupan Hari Ini
     const stocks = await Promise.all(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       dbStocks.map(async (stock: any) => {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,44 +54,60 @@ export async function GET() {
     // 3. Kalkulasi Net Worth & Rincian Dompet Dinamis
     let totalIn = 0; 
     let totalOut = 0;
-    
-    // 🔥 Bikin wadah kosong buat ngitung saldo per dompet
     const walletBalances: Record<string, number> = {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     financialLogs.forEach((log: any) => {
       const amount = log.amount;
-      // Pastikan nama dompet huruf besar semua biar seragam (misal: "BCA", "DANA")
       const walletName = log.wallet ? log.wallet.toUpperCase() : "CASH";
 
-      // Kalau dompetnya belum ada di daftar, bikin dulu saldonya 0
-      if (!walletBalances[walletName]) {
-        walletBalances[walletName] = 0;
-      }
+      if (!walletBalances[walletName]) walletBalances[walletName] = 0;
 
       if (log.type === "IN") {
         totalIn += amount;
-        walletBalances[walletName] += amount; // Tambah ke dompet
+        walletBalances[walletName] += amount;
       } 
       else if (log.type === "OUT") {
         totalOut += amount;
-        walletBalances[walletName] -= amount; // Kurangi dari dompet
+        walletBalances[walletName] -= amount;
       }
     });
     
     const liquidBalance = totalIn - totalOut;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stockAssetsLive = stocks.reduce((acc: any, stock: any) => acc + stock.totalValue, 0);
     const netWorth = liquidBalance + stockAssetsLive;
 
-    // 4. Rakit Teks Rincian Dompet
     let detailDompet = "";
     for (const [wallet, balance] of Object.entries(walletBalances)) {
       detailDompet += `💳 *${wallet}:* Rp${balance.toLocaleString("id-ID")}\n`;
     }
 
-    // 5. Bikin Teks Laporan Malam
-    const message = `🌙 *JARVIS NIGHTLY RECAP*\n\nSelamat istirahat Bara. Ini ringkasan asetmu hari ini (Closing Market):\n\n*Rincian Dompet:*\n${detailDompet}\n💵 *Saldo Liquid Total:* Rp${liquidBalance.toLocaleString("id-ID")}\n📈 *Aset Saham (Live):* Rp${stockAssetsLive.toLocaleString("id-ID")}\n💎 *TOTAL NET WORTH:* Rp${netWorth.toLocaleString("id-ID")}\n\nGood night, sleep tight! 💤`;
+    // ==========================================
+    // 🔥 4. TAMBAHAN BARU: TARIK DATA KESEHATAN HARI INI
+    // ==========================================
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const [{value: mo}, , {value: da}, , {value: ye}] = formatter.formatToParts(new Date());
+    const startOfDay = new Date(`${ye}-${mo}-${da}T00:00:00+07:00`);
+    const endOfDay = new Date(`${ye}-${mo}-${da}T23:59:59+07:00`);
+
+    const todaysHealthLogs = await prisma.healthLog.findMany({
+      where: { loggedAt: { gte: startOfDay, lte: endOfDay } }
+    });
+
+    let totalCalories = 0; let totalProtein = 0; let totalSugar = 0;
+    todaysHealthLogs.forEach((log: any) => {
+      totalCalories += log.calories;
+      totalProtein += log.protein;
+      totalSugar += log.sugar;
+    });
+
+    const TARGET_CALORIES = 2200;
+    const kaloriStatus = totalCalories > TARGET_CALORIES ? "🔴 OVER LIMIT" : "🟢 AMAN";
+
+    // 5. Rakit Teks Laporan Malam (Duit + Gizi)
+    const message = `🌙 *JARVIS NIGHTLY RECAP*\n\nSelamat istirahat Bara. Ini ringkasan aset dan kesehatanmu hari ini:\n\n*💰 LAPORAN KEUANGAN:*\n${detailDompet}💵 *Saldo Liquid:* Rp${liquidBalance.toLocaleString("id-ID")}\n📈 *Aset Saham:* Rp${stockAssetsLive.toLocaleString("id-ID")}\n💎 *NET WORTH:* Rp${netWorth.toLocaleString("id-ID")}\n\n*🍎 LAPORAN KLINIK JARVIS:*\n🔥 Kalori: ${totalCalories} / ${TARGET_CALORIES} kcal (${kaloriStatus})\n🥩 Protein: ${totalProtein.toFixed(1)}g\n🍭 Gula: ${totalSugar.toFixed(1)}g\n\nGood night, sleep tight! 💤`;
 
     // 6. Tembak ke WA lu!
     await sendFonnteMessage(MY_NUMBER, message);
