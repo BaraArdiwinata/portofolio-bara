@@ -373,18 +373,23 @@ export async function POST(request: Request) {
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
-        const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        
+        // 🔥 FIX 1: Cari paksa kurung kurawal JSON, abaikan teks alay dari Gemini
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Gemini tidak mengembalikan format JSON");
+        
+        const cleanJson = jsonMatch[0];
         const nutritionData = JSON.parse(cleanJson);
 
-        // 1. Simpan ke Database
+        // 🔥 FIX 2: Paksa casting jadi angka (Number) biar Prisma nggak ngamuk
         await prisma.healthLog.create({
           data: {
-            foodName: nutritionData.foodName,
-            calories: nutritionData.calories,
-            protein: nutritionData.protein,
-            carbs: nutritionData.carbs,
-            fat: nutritionData.fat,
-            sugar: nutritionData.sugar,
+            foodName: String(nutritionData.foodName || foodDescription),
+            calories: parseInt(nutritionData.calories) || 0,
+            protein: parseFloat(nutritionData.protein) || 0,
+            carbs: parseFloat(nutritionData.carbs) || 0,
+            fat: parseFloat(nutritionData.fat) || 0,
+            sugar: parseFloat(nutritionData.sugar) || 0,
           }
         });
 
