@@ -364,7 +364,7 @@ export async function POST(request: Request) {
         const groqApiKey = process.env.GROQ_API_KEY;
         if (!groqApiKey) throw new Error("GROQ_API_KEY belum dipasang di .env Bos!");
 
-        // 🔥 KITA TEMBAK LANGSUNG KE API GROQ (Sangat Cepat & Gratis)
+        // 🔥 FIX 1: Prompt Militer & Temperature Rendah biar Llama nggak ngide!
         const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -376,14 +376,15 @@ export async function POST(request: Request) {
             messages: [
               {
                 role: "system",
-                content: `Kamu adalah ahli gizi. Estimasikan gizi makanan/minuman dengan bahasa Indonesia. KEMBALIKAN HANYA FORMAT JSON VALID. Format: {"foodName": "Nama max 30 char", "calories": 100, "protein": 10.5, "carbs": 20.0, "fat": 5.0, "sugar": 2.0}`
+                content: `Kamu adalah API kalkulator gizi. WAJIB balas HANYA dengan JSON flat (tanpa nested object). WAJIB gunakan nama key persis ini (huruf kecil semua): "foodname" (string, buat nama menu jadi rapi/title case), "calories" (angka), "protein" (angka), "carbs" (angka), "fat" (angka), "sugar" (angka). JANGAN tulis satuan seperti 'kcal' atau 'g'. Berikan estimasi angka yang logis untuk makanan berat, JANGAN 0!`
               },
               {
                 role: "user",
                 content: foodDescription
               }
             ],
-            response_format: { type: "json_object" } // Paksa Groq ngeluarin JSON murni
+            response_format: { type: "json_object" },
+            temperature: 0.1 // 👈 Ini kuncinya! Bikin AI jadi robot penurut, nggak kreatif.
           })
         });
 
@@ -394,23 +395,27 @@ export async function POST(request: Request) {
         }
 
         let rawJson = groqData.choices[0].message.content;
-        
-        // 🔥 FIX 1: Bersihkan markdown ```json ... 
-        const jsonMatch = rawJson.match(/\{[\s\S]*\}/);
-        if (jsonMatch) rawJson = jsonMatch[0];
-
         const parsedData = JSON.parse(rawJson);
 
-        // 🔥 FIX 2: Bikin Mapping Anti-Translate!
-        // Kalau Llama ngirim pakai bahasa Inggris (calories) ya diambil.
-        // Kalau dia ngide pakai bahasa Indonesia (kalori) juga tetep ketangkep!
+        // 🔥 FIX 2: Bikin semua key dari Llama jadi huruf KECIL semua!
+        const flatData: any = {};
+        for (const key in parsedData) {
+          // Kalau Llama ngide bikin object beranak, kita paksa ambil nilainya aja
+          if (typeof parsedData[key] === 'object' && parsedData[key] !== null) {
+             flatData[key.toLowerCase()] = parsedData[key].value || parsedData[key].jumlah || 0;
+          } else {
+             flatData[key.toLowerCase()] = parsedData[key];
+          }
+        }
+
+        // 🔥 Ekstraksi Sakti Mandraguna
         const nutritionData = {
-          foodName: parsedData.foodName || parsedData.namaMakanan || parsedData.makanan || parsedData.menu || foodDescription,
-          calories: parsedData.calories || parsedData.kalori || parsedData.kal || 0,
-          protein: parsedData.protein || 0,
-          carbs: parsedData.carbs || parsedData.karbohidrat || parsedData.karbo || 0,
-          fat: parsedData.fat || parsedData.lemak || 0,
-          sugar: parsedData.sugar || parsedData.gula || 0
+          foodName: flatData.foodname || flatData.namamakanan || flatData.nama || foodDescription,
+          calories: parseInt(flatData.calories) || parseInt(flatData.kalori) || 0,
+          protein: parseFloat(flatData.protein) || 0,
+          carbs: parseFloat(flatData.carbs) || parseFloat(flatData.karbohidrat) || parseFloat(flatData.karbo) || 0,
+          fat: parseFloat(flatData.fat) || parseFloat(flatData.lemak) || 0,
+          sugar: parseFloat(flatData.sugar) || parseFloat(flatData.gula) || 0
         };
 
         // 1. Simpan ke Database (Sekarang pakai object nutritionData yang udah kebal!)
