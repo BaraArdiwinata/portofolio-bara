@@ -364,7 +364,6 @@ export async function POST(request: Request) {
         const groqApiKey = process.env.GROQ_API_KEY;
         if (!groqApiKey) throw new Error("GROQ_API_KEY belum dipasang di .env Bos!");
 
-        // 🔥 FIX 1: Prompt Militer & Temperature Rendah biar Llama nggak ngide!
         const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -376,7 +375,7 @@ export async function POST(request: Request) {
             messages: [
               {
                 role: "system",
-                content: `Kamu adalah API kalkulator gizi. WAJIB balas HANYA dengan JSON flat (tanpa nested object). WAJIB gunakan nama key persis ini (huruf kecil semua): "foodname" (string, buat nama menu jadi rapi/title case), "calories" (angka), "protein" (angka), "carbs" (angka), "fat" (angka), "sugar" (angka). JANGAN tulis satuan seperti 'kcal' atau 'g'. Berikan estimasi angka yang logis untuk makanan berat, JANGAN 0!`
+                content: "Kamu adalah ahli gizi. Tugasmu HANYA menghasilkan JSON flat. WAJIB gunakan struktur persis ini: {\"foodName\": \"Nama Makanan\", \"calories\": 800, \"protein\": 20, \"carbs\": 100, \"fat\": 30, \"sugar\": 5}. JANGAN gunakan nama kunci lain. JANGAN ada object bersarang (nested). Berikan estimasi angka logis, BUKAN 0."
               },
               {
                 role: "user",
@@ -384,7 +383,7 @@ export async function POST(request: Request) {
               }
             ],
             response_format: { type: "json_object" },
-            temperature: 0.1 // 👈 Ini kuncinya! Bikin AI jadi robot penurut, nggak kreatif.
+            temperature: 0.1 // Bikin AI kaku dan penurut
           })
         });
 
@@ -395,28 +394,38 @@ export async function POST(request: Request) {
         }
 
         let rawJson = groqData.choices[0].message.content;
-        const parsedData = JSON.parse(rawJson);
+        
+        // Bersihkan markdown bawaan Llama
+        const jsonMatch = rawJson.match(/\{[\s\S]*\}/);
+        const cleanJson = jsonMatch ? jsonMatch[0] : rawJson;
+        
+        const parsedData = JSON.parse(cleanJson);
+        const strData = JSON.stringify(parsedData).toLowerCase(); // Jadikan lowercase semua buat diburu!
 
-        // 🔥 FIX 2: Bikin semua key dari Llama jadi huruf KECIL semua!
-        const flatData: any = {};
-        for (const key in parsedData) {
-          // Kalau Llama ngide bikin object beranak, kita paksa ambil nilainya aja
-          if (typeof parsedData[key] === 'object' && parsedData[key] !== null) {
-             flatData[key.toLowerCase()] = parsedData[key].value || parsedData[key].jumlah || 0;
-          } else {
-             flatData[key.toLowerCase()] = parsedData[key];
+        // 🔥 JURUS EKSTRAKSI BRUTAL: Tarik paksa angka dari dalam string!
+        const getNumber = (keys: string[]) => {
+          for (const k of keys) {
+            const regex = new RegExp(`"${k}"\\s*:\\s*([0-9.]+)`);
+            const match = strData.match(regex);
+            if (match) return parseFloat(match[1]);
           }
-        }
-
-        // 🔥 Ekstraksi Sakti Mandraguna
-        const nutritionData = {
-          foodName: flatData.foodname || flatData.namamakanan || flatData.nama || foodDescription,
-          calories: parseInt(flatData.calories) || parseInt(flatData.kalori) || 0,
-          protein: parseFloat(flatData.protein) || 0,
-          carbs: parseFloat(flatData.carbs) || parseFloat(flatData.karbohidrat) || parseFloat(flatData.karbo) || 0,
-          fat: parseFloat(flatData.fat) || parseFloat(flatData.lemak) || 0,
-          sugar: parseFloat(flatData.sugar) || parseFloat(flatData.gula) || 0
+          return 0;
         };
+
+        const nutritionData = {
+          foodName: parsedData.foodName || parsedData.foodname || parsedData.namaMakanan || foodDescription,
+          calories: getNumber(["calories", "kalori", "kal", "energi"]),
+          protein: getNumber(["protein", "pro"]),
+          carbs: getNumber(["carbs", "karbohidrat", "karbo"]),
+          fat: getNumber(["fat", "lemak"]),
+          sugar: getNumber(["sugar", "gula"])
+        };
+
+        // 🔥 FITUR CEPU: Kalau Llama masih bandel ngasih 0, kita laporin bukti JSON-nya!
+        let debugInfo = "";
+        if (nutritionData.calories === 0) {
+            debugInfo = `\n\n*(🕵️‍♂️ Debug AI Llama: ${cleanJson})*`;
+        }
 
         // 1. Simpan ke Database (Sekarang pakai object nutritionData yang udah kebal!)
         await prisma.healthLog.create({
@@ -455,7 +464,7 @@ export async function POST(request: Request) {
         const sisaTeks = remaining > 0 ? `${remaining} kcal` : `OVER LIMIT! 🚨 Kurangin jajan Bos!`;
 
         // 4. Kirim Balasan
-        const replyMsg = `✅ *FOOD RECORDED!*\n\n🍛 Menu: ${nutritionData.foodName}\n🔥 Kalori: ${nutritionData.calories} kcal\n🥩 Protein: ${nutritionData.protein}g\n🍚 Karbo: ${nutritionData.carbs}g\n🥑 Lemak: ${nutritionData.fat}g\n🍭 Gula: ${nutritionData.sugar}g\n\n📊 *DAILY CALORIES:*\nMasuk: ${totalCaloriesToday} / ${targetCalories} kcal\nSisa Kuota: ${sisaTeks}`;
+        const replyMsg = `✅ *FOOD RECORDED!*\n\n🍛 Menu: ${nutritionData.foodName}\n🔥 Kalori: ${nutritionData.calories} kcal\n🥩 Protein: ${nutritionData.protein}g\n🍚 Karbo: ${nutritionData.carbs}g\n🥑 Lemak: ${nutritionData.fat}g\n🍭 Gula: ${nutritionData.sugar}g\n\n📊 *DAILY CALORIES:*\nMasuk: ${totalCaloriesToday} / ${targetCalories} kcal\nSisa Kuota: ${sisaTeks}${debugInfo}`; // 👈 debugInfo nempel di sini!
 
         await sendFonnteMessage(sender, replyMsg);
 
