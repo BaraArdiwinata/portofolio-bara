@@ -359,7 +359,8 @@ export async function POST(request: Request) {
 
       try {
         const prompt = `Kamu adalah ahli gizi. Estimasikan kandungan gizi untuk makanan/minuman ini: "${foodDescription}".
-        Format yang diwajibkan (harus berupa JSON):
+        Kembalikan HANYA format JSON valid (tanpa blok kode markdown).
+        Format yang diwajibkan:
         {
           "foodName": "(Nama makanan yang rapi, max 30 karakter)",
           "calories": (integer, estimasi total kalori dalam kcal),
@@ -369,43 +370,18 @@ export async function POST(request: Request) {
           "sugar": (float, estimasi total gula dalam gram)
         }`;
 
-        // 🔥 JURUS JALUR VVIP (CUMA PAKAI MODEL YANG PASTI JALAN)
-        const fallbackModels = [
-          "gemini-1.5-pro",          // Prioritas 1: Otak paling pinter, stabil
-          "gemini-1.5-flash-latest"  // Prioritas 2: Cadangan ngebut anti 404
-        ];
+        console.log("⏳ JARVIS mencoba menebak pakai model legendaris: gemini-pro...");
         
-        let responseText = "";
-        let isSuccess = false;
-        let attempt = 0;
-        const maxRetries = fallbackModels.length; 
-        let errorLogs = ""; // Buat nyatet dosa satpam Google
-
-        while (attempt < maxRetries && !isSuccess) {
-          const currentModel = fallbackModels[attempt];
-          try {
-            const model = genAI.getGenerativeModel({ 
-              model: currentModel,
-              generationConfig: { responseMimeType: "application/json" } 
-            });
-
-            const result = await model.generateContent(prompt);
-            responseText = result.response.text();
-            isSuccess = true; 
-            
-          } catch (apiError: any) {
-            errorLogs += `\n- ${currentModel}: ${apiError.message.substring(0, 50)}...`;
-            attempt++;
-            
-            if (attempt >= maxRetries) {
-               throw new Error(errorLogs); // Lempar semua catetan error ke Bos Bara!
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-        }
-
-        const nutritionData = JSON.parse(responseText);
+        // 🔥 KITA PAKE MODEL BASIC & PALING STABIL (Tanpa config aneh-aneh)
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const result = await model.generateContent(prompt);
+        const rawText = result.response.text();
+        
+        // 🔥 JURUS REGEX: Cari paksa kurung kurawal JSON, abaikan bacotan Gemini
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Gemini gagal ngasih JSON. Balasannya: " + rawText);
+        
+        const nutritionData = JSON.parse(jsonMatch[0]);
 
         // 1. Simpan ke Database
         await prisma.healthLog.create({
@@ -450,7 +426,8 @@ export async function POST(request: Request) {
 
       } catch (error: any) {
         console.error("❌ AI Nutrition Error:", error);
-        await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nGagal nebak gizi karena semua model Google nolak:\n${error.message}\n\nLaporin ke teknisi Bos!`);
+        // 🔥 Kalau error, tampilkan FULL tanpa dipotong
+        await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nPesan Error:\n${error.message}\n\nSilakan kirim pesan ini ke teknisi!`);
       }
       return NextResponse.json({ status: "success" });
     }
