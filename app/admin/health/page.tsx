@@ -91,7 +91,7 @@ async function HealthDashboardContent() {
             </div>
             {isOverLimit && (
               <div className="mt-3 inline-flex items-center gap-2 bg-red-950/50 text-red-200 px-3 py-1.5 rounded-lg text-sm font-bold border border-red-500/30">
-                <AlertTriangle size={16} /> OVER LIMIT! Waktunya Puasa Bos!
+                <AlertTriangle size={16} /> OVER LIMIT! Waktunya Puasa!
               </div>
             )}
           </div>
@@ -102,7 +102,7 @@ async function HealthDashboardContent() {
                 <Candy size={18} /> Gula Darah Waspada!
               </div>
               <p className="text-xs text-pink-100/80">
-                Lu udah konsumsi <b>{macros.sugar.toFixed(1)}g</b> gula hari ini. Ingat temen lu di Mojokerto yang cuma minum air putih!
+                Lu udah konsumsi <b>{macros.sugar.toFixed(1)}g</b> gula hari ini. WHO nyaranin maksimal 50g/hari. Coba kurangi minuman manis dan cemilan olahan!
               </p>
             </div>
           )}
@@ -168,7 +168,7 @@ async function HealthDashboardContent() {
             ) : (
               <div className="p-10 text-center text-slate-400 opacity-60">
                 <Activity size={40} className="mx-auto mb-3" strokeWidth={1.5} />
-                <p className="text-sm font-medium">Belum ada makanan yang masuk. Gih sarapan Bos!</p>
+                <p className="text-sm font-medium">Belum ada makanan yang masuk. Gih sarapan!</p>
               </div>
             )}
           </div>
