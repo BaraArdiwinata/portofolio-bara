@@ -358,10 +358,14 @@ export async function POST(request: Request) {
       await sendFonnteMessage(sender, `⏳ JARVIS sedang meneliti kandungan gizi dari: ${foodDescription}...`);
 
       try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Kamu adalah ahli gizi. Estimasikan kandungan gizi untuk makanan ini: "${foodDescription}".
-        Kembalikan HANYA format JSON valid (tanpa blok kode markdown).
-        Format yang diwajibkan:
+        // 🔥 FIX 1: Paksa Gemini HANYA membalas dengan JSON murni (Tanpa teks alay)
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          generationConfig: { responseMimeType: "application/json" } 
+        });
+
+        const prompt = `Kamu adalah ahli gizi. Estimasikan kandungan gizi untuk makanan/minuman ini: "${foodDescription}".
+        Format yang diwajibkan (harus berupa JSON):
         {
           "foodName": "(Nama makanan yang rapi, max 30 karakter)",
           "calories": (integer, estimasi total kalori dalam kcal),
@@ -373,15 +377,9 @@ export async function POST(request: Request) {
 
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
-        
-        // 🔥 FIX 1: Cari paksa kurung kurawal JSON, abaikan teks alay dari Gemini
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("Gemini tidak mengembalikan format JSON");
-        
-        const cleanJson = jsonMatch[0];
-        const nutritionData = JSON.parse(cleanJson);
+        const nutritionData = JSON.parse(responseText);
 
-        // 🔥 FIX 2: Paksa casting jadi angka (Number) biar Prisma nggak ngamuk
+        // 1. Simpan ke Database
         await prisma.healthLog.create({
           data: {
             foodName: String(nutritionData.foodName || foodDescription),
@@ -409,9 +407,10 @@ export async function POST(request: Request) {
         });
 
         let totalCaloriesToday = 0;
-        todaysLogs.forEach(log => totalCaloriesToday += log.calories);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        todaysLogs.forEach((log: any) => totalCaloriesToday += log.calories);
 
-        // 3. Set Target Kalori Bos Bara (Misal: 2200 kcal/hari)
+        // 3. Set Target Kalori Bos Bara
         const targetCalories = 2200; 
         const remaining = targetCalories - totalCaloriesToday;
         const sisaTeks = remaining > 0 ? `${remaining} kcal` : `OVER LIMIT! 🚨 Kurangin jajan Bos!`;
@@ -421,10 +420,12 @@ export async function POST(request: Request) {
 
         await sendFonnteMessage(sender, replyMsg);
 
-      } catch (error) {
+      } catch (error: any) {
+        // 🔥 FIX 2: BIKIN JARVIS CEPU ERRORNYA KE WA!
         console.error("❌ AI Nutrition Error:", error);
-        await sendFonnteMessage(sender, "❌ JARVIS kebingungan menebak makanan itu. Coba ejaan yang lebih jelas Bos!");
+        await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nPesan Error:\n${error.message}\n\nSilakan kirim pesan ini ke teknisi!`);
       }
+      return NextResponse.json({ status: "success" });
       return NextResponse.json({ status: "success" });
     }
 
