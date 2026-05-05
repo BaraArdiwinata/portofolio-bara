@@ -369,24 +369,21 @@ export async function POST(request: Request) {
           "sugar": (float, estimasi total gula dalam gram)
         }`;
 
-        // 🔥 JURUS ULTIMATE CASCADING (GRACEFUL DEGRADATION)
+        // 🔥 JURUS JALUR VVIP (CUMA PAKAI MODEL YANG PASTI JALAN)
         const fallbackModels = [
-          "gemini-1.5-flash",    // Prioritas 1: Paling stabil & kuota berlimpah
-          "gemini-1.5-flash-8b", // Prioritas 2: Kuda pekerja, super ngebut
-          "gemini-2.5-flash",    // Prioritas 3: Paling pintar, tapi sering ngantri
-          "gemini-2.0-flash"     // Prioritas 4: Rawan kena tilang kuota 0
+          "gemini-1.5-pro",          // Prioritas 1: Otak paling pinter, stabil
+          "gemini-1.5-flash-latest"  // Prioritas 2: Cadangan ngebut anti 404
         ];
         
         let responseText = "";
         let isSuccess = false;
         let attempt = 0;
-        const maxRetries = fallbackModels.length; // Otomatis 4 nyawa
+        const maxRetries = fallbackModels.length; 
+        let errorLogs = ""; // Buat nyatet dosa satpam Google
 
         while (attempt < maxRetries && !isSuccess) {
           const currentModel = fallbackModels[attempt];
           try {
-            console.log(`⏳ JARVIS mencoba menebak pakai model: ${currentModel}...`);
-            
             const model = genAI.getGenerativeModel({ 
               model: currentModel,
               generationConfig: { responseMimeType: "application/json" } 
@@ -394,19 +391,17 @@ export async function POST(request: Request) {
 
             const result = await model.generateContent(prompt);
             responseText = result.response.text();
-            isSuccess = true; // Berhasil! Langsung keluar dari loop
+            isSuccess = true; 
             
           } catch (apiError: any) {
-            console.error(`❌ Gagal pakai ${currentModel}:`, apiError.message);
+            errorLogs += `\n- ${currentModel}: ${apiError.message.substring(0, 50)}...`;
             attempt++;
             
             if (attempt >= maxRetries) {
-               // Kalau 4 model Google tumbang semua, baru lempar error ke luar
-               throw apiError; 
+               throw new Error(errorLogs); // Lempar semua catetan error ke Bos Bara!
             }
             
-            // Jeda 3 detik sebelum nyoba model berikutnya
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         }
 
@@ -455,13 +450,7 @@ export async function POST(request: Request) {
 
       } catch (error: any) {
         console.error("❌ AI Nutrition Error:", error);
-        
-        // Kalau ke-empat model Google kena tilang/ngantri semua
-        if (error.message && (error.message.includes("503") || error.message.includes("429") || error.message.includes("high demand"))) {
-            await sendFonnteMessage(sender, "⏳ Waduh Bos, ke-4 satelit Google lagi ngantri/limit semua nih. Coba makan dulu aja, masukin datanya 5 menit lagi ya! 🍹");
-        } else {
-            await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nPesan Error:\n${error.message}\n\nSilakan kirim pesan ini ke teknisi!`);
-        }
+        await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nGagal nebak gizi karena semua model Google nolak:\n${error.message}\n\nLaporin ke teknisi Bos!`);
       }
       return NextResponse.json({ status: "success" });
     }
