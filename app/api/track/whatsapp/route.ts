@@ -369,31 +369,44 @@ export async function POST(request: Request) {
           "sugar": (float, estimasi total gula dalam gram)
         }`;
 
+        // 🔥 JURUS ULTIMATE CASCADING (GRACEFUL DEGRADATION)
+        const fallbackModels = [
+          "gemini-1.5-flash",    // Prioritas 1: Paling stabil & kuota berlimpah
+          "gemini-1.5-flash-8b", // Prioritas 2: Kuda pekerja, super ngebut
+          "gemini-2.5-flash",    // Prioritas 3: Paling pintar, tapi sering ngantri
+          "gemini-2.0-flash"     // Prioritas 4: Rawan kena tilang kuota 0
+        ];
+        
         let responseText = "";
         let isSuccess = false;
         let attempt = 0;
-        const maxRetries = 2; // Kita kasih JARVIS 2 nyawa
+        const maxRetries = fallbackModels.length; // Otomatis 4 nyawa
 
-        // 🔥 JURUS AUTO-RETRY & FALLBACK
         while (attempt < maxRetries && !isSuccess) {
+          const currentModel = fallbackModels[attempt];
           try {
-            // Percobaan 1: Pakai 2.5 Flash. Kalau gagal, turun ke 2.0 Flash
-            const modelName = attempt === 0 ? "gemini-2.5-flash" : "gemini-2.0-flash";
+            console.log(`⏳ JARVIS mencoba menebak pakai model: ${currentModel}...`);
+            
             const model = genAI.getGenerativeModel({ 
-              model: modelName,
+              model: currentModel,
               generationConfig: { responseMimeType: "application/json" } 
             });
 
             const result = await model.generateContent(prompt);
             responseText = result.response.text();
-            isSuccess = true; // Kalau berhasil lewat sini, keluar dari loop!
-          } catch (apiError: any) {
-            attempt++;
-            console.error(`❌ Percobaan ${attempt} API Error:`, apiError.message);
-            if (attempt >= maxRetries) throw apiError; // Udah 2x gagal? Baru lempar error beneran
+            isSuccess = true; // Berhasil! Langsung keluar dari loop
             
-            // Tunggu 2 detik sebelum nyoba lagi (Biar satpam Google santai dikit)
-            await new Promise(resolve => setTimeout(resolve, 2000));
+          } catch (apiError: any) {
+            console.error(`❌ Gagal pakai ${currentModel}:`, apiError.message);
+            attempt++;
+            
+            if (attempt >= maxRetries) {
+               // Kalau 4 model Google tumbang semua, baru lempar error ke luar
+               throw apiError; 
+            }
+            
+            // Jeda 3 detik sebelum nyoba model berikutnya
+            await new Promise(resolve => setTimeout(resolve, 3000));
           }
         }
 
@@ -441,11 +454,15 @@ export async function POST(request: Request) {
         await sendFonnteMessage(sender, replyMsg);
 
       } catch (error: any) {
-        // 🔥 FIX 2: BIKIN JARVIS CEPU ERRORNYA KE WA!
         console.error("❌ AI Nutrition Error:", error);
-        await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nPesan Error:\n${error.message}\n\nSilakan kirim pesan ini ke teknisi!`);
+        
+        // Kalau ke-empat model Google kena tilang/ngantri semua
+        if (error.message && (error.message.includes("503") || error.message.includes("429") || error.message.includes("high demand"))) {
+            await sendFonnteMessage(sender, "⏳ Waduh Bos, ke-4 satelit Google lagi ngantri/limit semua nih. Coba makan dulu aja, masukin datanya 5 menit lagi ya! 🍹");
+        } else {
+            await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nPesan Error:\n${error.message}\n\nSilakan kirim pesan ini ke teknisi!`);
+        }
       }
-      return NextResponse.json({ status: "success" });
       return NextResponse.json({ status: "success" });
     }
 
