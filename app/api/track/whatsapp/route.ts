@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       await sendFonnteMessage(sender, "⏳ JARVIS Vision sedang memindai struk...");
       
       const media = await fetchFonnteImage(attachmentUrl);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const prompt = `Analisis gambar struk belanja ini. Kembalikan HANYA format JSON valid (tanpa blok kode markdown). 
       Format JSON yang diwajibkan:
       {
@@ -360,7 +360,7 @@ export async function POST(request: Request) {
       try {
         // 🔥 FIX 1: Paksa Gemini HANYA membalas dengan JSON murni (Tanpa teks alay)
         const model = genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash",
+          model: "gemini-2.5-flash",
           generationConfig: { responseMimeType: "application/json" } 
         });
 
