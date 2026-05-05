@@ -352,36 +352,49 @@ export async function POST(request: Request) {
     // 🔥 FITUR BARU: NUTRITION & CALORIE TRACKER (AI AI-AN)
     // Format: EAT [Nama Makanan] atau DRINK [Nama Minuman]
     // =================================================================
+    // =================================================================
+    // 🔥 FITUR NUTRITION TRACKER (POWERED BY GROQ & LLAMA 3)
+    // =================================================================
     const eatMatch = text.match(/^(?:EAT|DRINK)\s+(.+)$/i);
     if (eatMatch) {
       const foodDescription = eatMatch[1].trim();
       await sendFonnteMessage(sender, `⏳ JARVIS sedang meneliti kandungan gizi dari: ${foodDescription}...`);
 
       try {
-        const prompt = `Kamu adalah ahli gizi. Estimasikan kandungan gizi untuk makanan/minuman ini: "${foodDescription}".
-        Kembalikan HANYA format JSON valid (tanpa blok kode markdown).
-        Format yang diwajibkan:
-        {
-          "foodName": "(Nama makanan yang rapi, max 30 karakter)",
-          "calories": (integer, estimasi total kalori dalam kcal),
-          "protein": (float, estimasi total protein dalam gram),
-          "carbs": (float, estimasi total karbohidrat dalam gram),
-          "fat": (float, estimasi total lemak dalam gram),
-          "sugar": (float, estimasi total gula dalam gram)
-        }`;
+        const groqApiKey = process.env.GROQ_API_KEY;
+        if (!groqApiKey) throw new Error("GROQ_API_KEY belum dipasang di .env Bos!");
 
-        console.log("⏳ JARVIS mencoba menebak pakai model legendaris: gemini-pro...");
+        // 🔥 KITA TEMBAK LANGSUNG KE API GROQ (Sangat Cepat & Gratis)
+        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${groqApiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "llama3-8b-8192", // Model ringan, cepat, dan pintar dari Meta
+            messages: [
+              {
+                role: "system",
+                content: `Kamu adalah ahli gizi. Estimasikan gizi makanan/minuman dengan bahasa Indonesia. KEMBALIKAN HANYA FORMAT JSON VALID. Format: {"foodName": "Nama max 30 char", "calories": 100, "protein": 10.5, "carbs": 20.0, "fat": 5.0, "sugar": 2.0}`
+              },
+              {
+                role: "user",
+                content: foodDescription
+              }
+            ],
+            response_format: { type: "json_object" } // Paksa Groq ngeluarin JSON murni
+          })
+        });
+
+        const groqData = await groqResponse.json();
         
-        // 🔥 KITA PAKE MODEL BASIC & PALING STABIL (Tanpa config aneh-aneh)
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const result = await model.generateContent(prompt);
-        const rawText = result.response.text();
-        
-        // 🔥 JURUS REGEX: Cari paksa kurung kurawal JSON, abaikan bacotan Gemini
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("Gemini gagal ngasih JSON. Balasannya: " + rawText);
-        
-        const nutritionData = JSON.parse(jsonMatch[0]);
+        if (!groqResponse.ok) {
+           throw new Error(groqData.error?.message || "Gagal nyambung ke server Groq");
+        }
+
+        const rawJson = groqData.choices[0].message.content;
+        const nutritionData = JSON.parse(rawJson);
 
         // 1. Simpan ke Database
         await prisma.healthLog.create({
@@ -426,7 +439,6 @@ export async function POST(request: Request) {
 
       } catch (error: any) {
         console.error("❌ AI Nutrition Error:", error);
-        // 🔥 Kalau error, tampilkan FULL tanpa dipotong
         await sendFonnteMessage(sender, `🚨 *JARVIS SYSTEM ERROR* 🚨\n\nPesan Error:\n${error.message}\n\nSilakan kirim pesan ini ke teknisi!`);
       }
       return NextResponse.json({ status: "success" });
