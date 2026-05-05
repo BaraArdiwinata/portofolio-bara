@@ -358,12 +358,6 @@ export async function POST(request: Request) {
       await sendFonnteMessage(sender, `⏳ JARVIS sedang meneliti kandungan gizi dari: ${foodDescription}...`);
 
       try {
-        // 🔥 FIX 1: Paksa Gemini HANYA membalas dengan JSON murni (Tanpa teks alay)
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-2.5-flash",
-          generationConfig: { responseMimeType: "application/json" } 
-        });
-
         const prompt = `Kamu adalah ahli gizi. Estimasikan kandungan gizi untuk makanan/minuman ini: "${foodDescription}".
         Format yang diwajibkan (harus berupa JSON):
         {
@@ -375,8 +369,34 @@ export async function POST(request: Request) {
           "sugar": (float, estimasi total gula dalam gram)
         }`;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        let responseText = "";
+        let isSuccess = false;
+        let attempt = 0;
+        const maxRetries = 2; // Kita kasih JARVIS 2 nyawa
+
+        // 🔥 JURUS AUTO-RETRY & FALLBACK
+        while (attempt < maxRetries && !isSuccess) {
+          try {
+            // Percobaan 1: Pakai 2.5 Flash. Kalau gagal, turun ke 2.0 Flash
+            const modelName = attempt === 0 ? "gemini-2.5-flash" : "gemini-2.0-flash";
+            const model = genAI.getGenerativeModel({ 
+              model: modelName,
+              generationConfig: { responseMimeType: "application/json" } 
+            });
+
+            const result = await model.generateContent(prompt);
+            responseText = result.response.text();
+            isSuccess = true; // Kalau berhasil lewat sini, keluar dari loop!
+          } catch (apiError: any) {
+            attempt++;
+            console.error(`❌ Percobaan ${attempt} API Error:`, apiError.message);
+            if (attempt >= maxRetries) throw apiError; // Udah 2x gagal? Baru lempar error beneran
+            
+            // Tunggu 2 detik sebelum nyoba lagi (Biar satpam Google santai dikit)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+
         const nutritionData = JSON.parse(responseText);
 
         // 1. Simpan ke Database
