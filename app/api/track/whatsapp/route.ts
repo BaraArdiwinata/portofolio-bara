@@ -393,13 +393,30 @@ export async function POST(request: Request) {
            throw new Error(groqData.error?.message || "Gagal nyambung ke server Groq");
         }
 
-        const rawJson = groqData.choices[0].message.content;
-        const nutritionData = JSON.parse(rawJson);
+        let rawJson = groqData.choices[0].message.content;
+        
+        // 🔥 FIX 1: Bersihkan markdown ```json ... 
+        const jsonMatch = rawJson.match(/\{[\s\S]*\}/);
+        if (jsonMatch) rawJson = jsonMatch[0];
 
-        // 1. Simpan ke Database
+        const parsedData = JSON.parse(rawJson);
+
+        // 🔥 FIX 2: Bikin Mapping Anti-Translate!
+        // Kalau Llama ngirim pakai bahasa Inggris (calories) ya diambil.
+        // Kalau dia ngide pakai bahasa Indonesia (kalori) juga tetep ketangkep!
+        const nutritionData = {
+          foodName: parsedData.foodName || parsedData.namaMakanan || parsedData.makanan || parsedData.menu || foodDescription,
+          calories: parsedData.calories || parsedData.kalori || parsedData.kal || 0,
+          protein: parsedData.protein || 0,
+          carbs: parsedData.carbs || parsedData.karbohidrat || parsedData.karbo || 0,
+          fat: parsedData.fat || parsedData.lemak || 0,
+          sugar: parsedData.sugar || parsedData.gula || 0
+        };
+
+        // 1. Simpan ke Database (Sekarang pakai object nutritionData yang udah kebal!)
         await prisma.healthLog.create({
           data: {
-            foodName: String(nutritionData.foodName || foodDescription),
+            foodName: String(nutritionData.foodName),
             calories: parseInt(nutritionData.calories) || 0,
             protein: parseFloat(nutritionData.protein) || 0,
             carbs: parseFloat(nutritionData.carbs) || 0,
