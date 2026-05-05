@@ -372,7 +372,7 @@ export async function POST(request: Request) {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model: "llama3-8b-8192", // Model ringan, cepat, dan pintar dari Meta
+            model: "llama-3.1-8b-instant",
             messages: [
               {
                 role: "system",
