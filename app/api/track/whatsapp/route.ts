@@ -431,11 +431,11 @@ export async function POST(request: Request) {
         await prisma.healthLog.create({
           data: {
             foodName: String(nutritionData.foodName),
-            calories: parseInt(nutritionData.calories) || 0,
-            protein: parseFloat(nutritionData.protein) || 0,
-            carbs: parseFloat(nutritionData.carbs) || 0,
-            fat: parseFloat(nutritionData.fat) || 0,
-            sugar: parseFloat(nutritionData.sugar) || 0,
+            calories: Math.round(nutritionData.calories) || 0, 
+            protein: nutritionData.protein || 0,
+            carbs: nutritionData.carbs || 0,
+            fat: nutritionData.fat || 0,
+            sugar: nutritionData.sugar || 0,
           }
         });
 
