@@ -119,3 +119,11 @@ model HealthLog {
   sugar       Float    // Gram
   loggedAt    DateTime @default(now()) // Waktu makan
 }
+
+model FinanceLog {
+  id        String   @id @default(cuid())
+  merchant  String   // Nama toko (Misal: Kopi Kenangan)
+  amount    Int      // Nominal (Misal: 25000)
+  type      String   @default("EXPENSE") // PENGELUARAN atau PEMASUKAN
+  loggedAt  DateTime @default(now())
+}
