@@ -48,16 +48,35 @@ export async function POST(req: Request) {
     }
 
     // 3. Masukin ke Database Keuangan
-    await prisma.financeLog.create({
+    await prisma.financialLog.create({
       data: {
-        merchant: merchant,
+        description: merchant, 
         amount: amount,
-        type: "EXPENSE"
+        type: "OUT",
+        wallet: "LIVIN", 
       }
     });
 
-    // 4. (OPSIONAL) Kirim Notif ke WA Bos Bara via Fonnte
-    // Kalau lu mau JARVIS lapor ke WA, masukin fungsi sendFonnteMessage di sini.
+    // 4. Kirim Notif ke WA Bos Bara via Fonnte
+    const fonnteToken = process.env.FONNTE_TOKEN;
+    const myWaNumber = "081233177952";
+
+    if (fonnteToken) {
+      const waMessage = `💸 *JAJAN TERCATAT BOS!*\n\n🏪 Toko: ${merchant}\n💰 Nominal: Rp ${amount.toLocaleString('id-ID')}\n📊 Kategori: Pengeluaran\n\n> _JARVIS Auto-Tracker via Webhook_`;
+
+      await fetch("https://api.fonnte.com/send", {
+        method: "POST",
+        headers: {
+          "Authorization": fonnteToken,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          target: myWaNumber,
+          message: waMessage,
+          countryCode: "62"
+        })
+      });
+    }
 
     return NextResponse.json({ status: "success", merchant, amount });
 
