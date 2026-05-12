@@ -6,8 +6,8 @@ const prisma = new PrismaClient();
 export async function POST(req: Request) {
   try {
     // 1. Tangkap data dari Make.com
-    const body = await req.json();
-    const emailText = body.text; 
+    const body = await req.text();
+    const emailText = body; 
 
     if (!emailText) {
       return NextResponse.json({ status: "error", message: "Teks email kosong Bos!" }, { status: 400 });
