@@ -3,30 +3,36 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// 🛠️ HELPER: Fungsi buat nyari tanggal awal periode (Senin buat Weekly, Tgl 1 buat Monthly)
+function getStartDate(period: string) {
+  const now = new Date();
+  if (period === "WEEKLY") {
+    const day = now.getDay() || 7;
+    const diff = now.getDate() - day + 1;
+    const monday = new Date(now.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  } else {
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    // 1. Tangkap data dari Make.com
-    const body = await req.text();
-    const emailText = body; 
+    const emailText = await req.text();
+    if (!emailText) return NextResponse.json({ status: "error", message: "Teks email kosong Bos!" }, { status: 400 });
 
-    if (!emailText) {
-      return NextResponse.json({ status: "error", message: "Teks email kosong Bos!" }, { status: 400 });
-    }
-
-    // 2. Suruh Llama 3 bedah teks emailnya
     const groqApiKey = process.env.GROQ_API_KEY;
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${groqApiKey}`,
-        "Content-Type": "application/json"
-      },
+      headers: { "Authorization": `Bearer ${groqApiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
         messages: [
           {
             role: "system",
-            content: `Kamu adalah API ekstrak data keuangan. Ekstrak data dari struk Bank Mandiri berikut. WAJIB balas HANYA JSON flat: {"merchant": "nama toko", "amount": 50000}. Kalau nominal tidak ditemukan, isi amount dengan 0.`
+            content: `Kamu API ekstrak data. Ekstrak dari struk Mandiri. Balas HANYA JSON: {"merchant": "nama", "amount": 50000, "category": "KATEGORI"}.
+            PILIH KATEGORI: Bensin, Makan_Jajan, Nongkrong, Kuota, Lain_Lain.`
           },
           { role: "user", content: emailText }
         ],
@@ -36,52 +42,78 @@ export async function POST(req: Request) {
     });
 
     const groqData = await groqResponse.json();
-    const rawJson = groqData.choices[0].message.content;
-    const parsedData = JSON.parse(rawJson);
-
+    const parsedData = JSON.parse(groqData.choices[0].message.content);
     const amount = parseInt(parsedData.amount) || 0;
     const merchant = parsedData.merchant || "Toko Tidak Diketahui";
+    const validCategories = ["Bensin", "Makan_Jajan", "Nongkrong", "Kuota", "Lain_Lain"];
+    const category = validCategories.includes(parsedData.category) ? parsedData.category : "Lain_Lain";
 
-    // Kalau gagal nemu angka, stop aja
-    if (amount === 0) {
-        return NextResponse.json({ status: "ignored", message: "Bukan email resi pengeluaran" });
-    }
+    if (amount === 0) return NextResponse.json({ status: "ignored" });
 
-    // 3. Masukin ke Database Keuangan
+    // 1. Simpan Transaksi
     await prisma.financialLog.create({
-      data: {
-        description: merchant, 
-        amount: amount,
-        type: "OUT",
-        wallet: "LIVIN", 
-      }
+      data: { description: merchant, amount: amount, type: "OUT", wallet: "LIVIN", category: category }
     });
 
-    // 4. Kirim Notif ke WA Bos Bara via Fonnte
-    const fonnteToken = process.env.FONNTE_TOKEN;
-    const myWaNumber = "081233177952";
+    // 2. 🧠 LOGIKA SUBSIDI SILANG (FALLBACK)
+    const budgetPlan = await prisma.categoryBudget.findUnique({ where: { category: category } });
+    let budgetText = "";
 
+    if (budgetPlan) {
+      const startDate = getStartDate(budgetPlan.period);
+      const totalSpent = await prisma.financialLog.aggregate({
+        _sum: { amount: true },
+        where: { category: category, type: "OUT", createdAt: { gte: startDate } }
+      });
+
+      const spentAmount = totalSpent._sum.amount || 0;
+      let remainingAmount = budgetPlan.limit - spentAmount;
+      const periodText = budgetPlan.period === "WEEKLY" ? "MINGGU INI" : "BULAN INI";
+      
+      budgetText = `\n\n📉 *STATUS JATAH ${category.toUpperCase()} (${periodText}):*\nTerpakai: Rp ${spentAmount.toLocaleString('id-ID')} / Rp ${budgetPlan.limit.toLocaleString('id-ID')}\nSisa Jatah: *Rp ${remainingAmount.toLocaleString('id-ID')}*`;
+
+      // 🚨 JIKA OVERBUDGET & BUKAN KATEGORI LAIN_LAIN
+      if (remainingAmount < 0 && category !== "Lain_Lain") {
+        const overage = Math.abs(remainingAmount);
+        
+        // Cek sisa jatah di Lain_Lain (Dana Darurat)
+        const fallbackPlan = await prisma.categoryBudget.findUnique({ where: { category: "Lain_Lain" } });
+        if (fallbackPlan) {
+          const fbStart = getStartDate("MONTHLY");
+          const fbSpent = await prisma.financialLog.aggregate({
+            _sum: { amount: true },
+            where: { category: "Lain_Lain", type: "OUT", createdAt: { gte: fbStart } }
+          });
+          const fbRemaining = fallbackPlan.limit - (fbSpent._sum.amount || 0);
+
+          budgetText += `\n\n🚨 *OVERBUDGET BOS!* (Minus Rp ${overage.toLocaleString('id-ID')})`;
+          
+          if (fbRemaining >= overage) {
+            budgetText += `\n🚑 *TENANG!* Masih bisa dicover dana *Lain_Lain*.\nSisa Dana Darurat lu: *Rp ${(fbRemaining - overage).toLocaleString('id-ID')}*`;
+          } else {
+            budgetText += `\n💀 *KRITIS!* Dana *Lain_Lain* pun gak cukup buat cover! Lu beneran harus hemat!`;
+          }
+        }
+      } else if (remainingAmount < (budgetPlan.limit * 0.2)) {
+        budgetText += `\n⚠️ *WARNING:* Jatah lu sisa dikit lagi!`;
+      }
+    }
+
+    // 3. Kirim WA
+    const fonnteToken = process.env.FONNTE_TOKEN;
     if (fonnteToken) {
-      const waMessage = `💸 *JAJAN TERCATAT BOS!*\n\n🏪 Toko: ${merchant}\n💰 Nominal: Rp ${amount.toLocaleString('id-ID')}\n📊 Kategori: Pengeluaran\n\n> _JARVIS Auto-Tracker via Webhook_`;
+      const waMessage = `💸 *JAJAN TERCATAT BOS!*\n\n🏪 Toko: ${merchant}\n💰 Nominal: Rp ${amount.toLocaleString('id-ID')}\n📊 Kategori: ${category}${budgetText}\n\n> _JARVIS LifeOS v2.0_`;
 
       await fetch("https://api.fonnte.com/send", {
         method: "POST",
-        headers: {
-          "Authorization": fonnteToken,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          target: myWaNumber,
-          message: waMessage,
-          countryCode: "62"
-        })
+        headers: { "Authorization": fonnteToken, "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "081233177952", message: waMessage, countryCode: "62" })
       });
     }
 
-    return NextResponse.json({ status: "success", merchant, amount });
-
+    return NextResponse.json({ status: "success", amount, category });
   } catch (error: any) {
-    console.error("❌ Webhook Mandiri Error:", error.message);
+    console.error("❌ Error:", error.message);
     return NextResponse.json({ status: "error", message: error.message }, { status: 500 });
   }
 }

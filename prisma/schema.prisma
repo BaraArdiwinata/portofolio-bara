@@ -119,3 +119,11 @@ model HealthLog {
   sugar       Float    // Gram
   loggedAt    DateTime @default(now()) // Waktu makan
 }
+
+model CategoryBudget {
+  id        String   @id @default(cuid())
+  category  String   @unique // Misal: "Makan", "Bensin", "Kuota"
+  limit     Int      // Nominal maksimal, misal: 300000
+  period    String   @default("WEEKLY") // Isinya cuma 2: "WEEKLY" atau "MONTHLY"
+  updatedAt DateTime @updatedAt
+}
